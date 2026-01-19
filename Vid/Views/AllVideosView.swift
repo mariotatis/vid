@@ -10,14 +10,26 @@ struct AllVideosView: View {
     @State private var showFileImporter = false
     @State private var sortOption: SortOption = .name
     @State private var sortAscending: Bool = true
+    @State private var searchText = ""
     
     enum SortOption {
         case name, duration
     }
     
+    var filteredVideos: [Video] {
+        if searchText.isEmpty {
+            return videoManager.videos
+        } else {
+            return videoManager.videos.filter { video in
+                let name = video.name.folding(options: .diacriticInsensitive, locale: .current)
+                let query = searchText.folding(options: .diacriticInsensitive, locale: .current)
+                return name.localizedCaseInsensitiveContains(query)
+            }
+        }
+    }
+    
     var sortedVideos: [Video] {
-        let videos = videoManager.videos
-        return videos.sorted { v1, v2 in
+        return filteredVideos.sorted { v1, v2 in
             switch sortOption {
             case .name:
                 return sortAscending ? v1.name < v2.name : v1.name > v2.name
@@ -45,14 +57,24 @@ struct AllVideosView: View {
                 }
             }
             .navigationTitle("All Videos")
-
+            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search videos")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        print("Vid: Plus button tapped")
-                        showFileImporter = true
-                    }) {
-                        Image(systemName: "plus")
+                    HStack(spacing: 20) {
+                        Button(action: {
+                            print("Vid: Plus button tapped")
+                            showFileImporter = true
+                        }) {
+                            Image(systemName: "plus")
+                        }
+                        
+                        Button(action: {
+                            Task {
+                                await videoManager.loadVideosAsync()
+                            }
+                        }) {
+                            Image(systemName: "arrow.clockwise")
+                        }
                     }
                 }
                 

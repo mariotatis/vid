@@ -3,19 +3,22 @@ import AVKit
 
 struct CustomVideoPlayer: UIViewControllerRepresentable {
     var player: AVPlayer
+    var videoGravity: AVLayerVideoGravity = .resizeAspect
     
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let controller = AVPlayerViewController()
         controller.player = player
         controller.showsPlaybackControls = false // Hide native controls
-        controller.videoGravity = .resizeAspect
+        controller.videoGravity = videoGravity
         return controller
     }
     
     func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
-        // Update player if needed, though usually the reference stays same
         if uiViewController.player != player {
             uiViewController.player = player
+        }
+        if uiViewController.videoGravity != videoGravity {
+            uiViewController.videoGravity = videoGravity
         }
     }
 }

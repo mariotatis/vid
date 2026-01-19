@@ -239,4 +239,25 @@ class PlayerViewModel: ObservableObject {
         }
         isPlaying.toggle()
     }
+    
+    func updateShuffleState(isOn: Bool) {
+        self.isShuffleOn = isOn
+        guard let current = currentVideo else { return }
+        
+        if isOn {
+            // Shuffle: Create new shuffled queue, ensure current is first
+            var newQueue = originalQueue.shuffled()
+            if let index = newQueue.firstIndex(of: current) {
+                newQueue.swapAt(0, index)
+            } else {
+                newQueue.insert(current, at: 0)
+            }
+            self.queue = newQueue
+            self.currentIndex = 0
+        } else {
+            // Unshuffle: Revert to original order, find current index
+            self.queue = originalQueue
+            self.currentIndex = originalQueue.firstIndex(of: current) ?? 0
+        }
+    }
 }

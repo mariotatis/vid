@@ -10,7 +10,44 @@ class VideoManager: ObservableObject {
     @Published var isLoading = false
     
     init() {
-        // Defer loading to onAppear to avoid blocking app launch
+        loadVideosFromDisk()
+    }
+    
+    private var persistenceURL: URL? {
+        guard let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
+        return documents.appendingPathComponent("videos.json")
+    }
+    
+    private func saveVideosToDisk() {
+        guard let url = persistenceURL else { return }
+        do {
+            let data = try JSONEncoder().encode(videos)
+            try data.write(to: url)
+        } catch {
+            print("Failed to save videos: \(error)")
+        }
+    }
+    
+    private func loadVideosFromDisk() {
+        guard let url = persistenceURL, FileManager.default.fileExists(atPath: url.path) else { return }
+        do {
+            let data = try Data(contentsOf: url)
+            let loaded = try JSONDecoder().decode([Video].self, from: data)
+            
+            // Fixup URLs: The sandbox container path changes on every launch.
+            // We need to re-point the URL to the current Documents directory.
+            if let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+                self.videos = loaded.map { video in
+                    let fileName = video.url.lastPathComponent
+                    let newURL = documents.appendingPathComponent(fileName)
+                    return Video(name: video.name, url: newURL, duration: video.duration)
+                }
+            } else {
+                self.videos = loaded
+            }
+        } catch {
+            print("Failed to load videos: \(error)")
+        }
     }
     
     private func setupDocumentsDirectory() {
@@ -34,12 +71,16 @@ class VideoManager: ObservableObject {
     }
     
     func loadVideos() {
+        Task {
+            await loadVideosAsync()
+        }
+    }
+    
+    @MainActor
+    func loadVideosAsync() async {
         guard !isLoading else { return }
-        
-        // setupDocumentsDirectory() // Handled in VidApp.init to allow faster launch
-        
         isLoading = true
-        videos = []
+        // Do not clear videos to avoid flash
         
         guard let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
             isLoading = false
@@ -48,44 +89,54 @@ class VideoManager: ObservableObject {
         
         let fileManager = FileManager.default
         
-        Task {
-            do {
-                let resourceKeys: [URLResourceKey] = [.nameKey, .isDirectoryKey]
-                let enumerator = fileManager.enumerator(at: directory, includingPropertiesForKeys: resourceKeys, options: [.skipsHiddenFiles])
-                
-                var loadedVideos: [Video] = []
-                
-                while let fileURL = enumerator?.nextObject() as? URL {
-                    let resourceValues = try fileURL.resourceValues(forKeys: Set(resourceKeys))
-                    if resourceValues.isDirectory == true { continue }
+        do {
+            let resourceKeys: [URLResourceKey] = [.nameKey, .isDirectoryKey]
+            let enumerator = fileManager.enumerator(at: directory, includingPropertiesForKeys: resourceKeys, options: [.skipsHiddenFiles])
+            
+            var loadedVideos: [Video] = []
+            
+            // Collect URLs first to avoid blocking main thread too long if we were on it (but we are async)
+            // Enumeration is synchronous on file system usually.
+            
+            var videoURLs: [URL] = []
+            if let enumerator = enumerator {
+                for case let fileURL as URL in enumerator {
+                    if let resourceValues = try? fileURL.resourceValues(forKeys: Set(resourceKeys)),
+                       resourceValues.isDirectory == true { continue }
                     
-                    let validExtensions = ["mp4", "mov", "m4v"]
-                    if validExtensions.contains(fileURL.pathExtension.lowercased()) {
-                        let asset = AVURLAsset(url: fileURL)
-                        do {
-                            let durationTime = try await asset.load(.duration)
-                            let duration = CMTimeGetSeconds(durationTime)
-                            let video = Video(name: fileURL.deletingPathExtension().lastPathComponent, url: fileURL, duration: duration)
-                            loadedVideos.append(video)
-                        } catch {
-                            print("Failed to load duration for \(fileURL.lastPathComponent)")
-                        }
+                    if ["mp4", "mov", "m4v"].contains(fileURL.pathExtension.lowercased()) {
+                        videoURLs.append(fileURL)
                     }
                 }
-                
-                let finalVideos = loadedVideos.sorted { $0.name < $1.name }
-                await MainActor.run {
-                    self.videos = finalVideos
-                    self.isLoading = false
-                }
-            } catch {
-                print("Error enumerating files: \(error)")
-                await MainActor.run {
-                    self.isLoading = false
+            }
+            
+            for url in videoURLs {
+                let asset = AVURLAsset(url: url)
+                // load(.duration) is async
+                if let durationTime = try? await asset.load(.duration) {
+                    let duration = CMTimeGetSeconds(durationTime)
+                     // Important: We need a stable ID logic if we want playlists to survive reloads.
+                     // But for now, we follow the existing pattern, just fixing the reload behavior.
+                    let video = Video(name: url.deletingPathExtension().lastPathComponent, url: url, duration: duration)
+                    loadedVideos.append(video)
                 }
             }
+            
+            // Sort
+            let finalVideos = loadedVideos.sorted { $0.name < $1.name }
+            
+            // Update State
+            await MainActor.run {
+                self.videos = finalVideos
+                self.isLoading = false
+                self.saveVideosToDisk()
+            }
+            
+        } catch {
+            print("Error loading videos: \(error)")
+            self.isLoading = false
         }
-        }
+    }
 
     
     func importFiles(_ urls: [URL]) {

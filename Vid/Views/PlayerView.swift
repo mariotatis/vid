@@ -1,6 +1,37 @@
 import SwiftUI
 import AVKit
 
+enum MusicType: String, CaseIterable {
+    case Jazz, HipHop, Electronic
+}
+
+enum AspectRatioMode: String, CaseIterable {
+    case `default` = "Default"
+    case fill = "Fill"
+    case ratio4_3 = "4:3"
+    case ratio5_4 = "5:4"
+    case ratio16_9 = "16:9"
+    case ratio16_10 = "16:10"
+    
+    var gravity: AVLayerVideoGravity {
+        switch self {
+        case .default: return .resizeAspect
+        case .fill: return .resizeAspectFill
+        default: return .resize // Stretch
+        }
+    }
+    
+    var ratioValue: CGFloat? {
+        switch self {
+        case .ratio4_3: return 4/3
+        case .ratio5_4: return 5/4
+        case .ratio16_9: return 16/9
+        case .ratio16_10: return 16/10
+        default: return nil
+        }
+    }
+}
+
 struct PlayerView: View {
     @EnvironmentObject var playerVM: PlayerViewModel
     @EnvironmentObject var settings: SettingsStore
@@ -15,17 +46,17 @@ struct PlayerView: View {
     // 6 Bands frequencies
     let frequencies: [String] = ["60Hz", "150Hz", "400Hz", "1kHz", "2.4kHz", "15kHz"]
     
-    enum MusicType: String, CaseIterable {
-        case Jazz, HipHop, Electronic
-    }
+    // Aspect Ratio State
+    @State private var aspectRatioMode: AspectRatioMode = .default
     
     var body: some View {
         ZStack {
             Color.black.edgesIgnoringSafeArea(.all)
             
             // Custom Video Player (Hidden Controls)
-            CustomVideoPlayer(player: playerVM.player)
+            CustomVideoPlayer(player: playerVM.player, videoGravity: aspectRatioMode.gravity)
                 .edgesIgnoringSafeArea(.all)
+                .aspectRatio(aspectRatioMode.ratioValue, contentMode: .fit)
                 .onTapGesture {
                     withAnimation {
                         showControls.toggle()
@@ -38,10 +69,11 @@ struct PlayerView: View {
             // Controls Overlay
             if showControls {
                 VStack {
-                    // Top Bar (Close Button + Shuffle + EQ Toggle)
+                    // Top Bar (Close Button + Shuffle + EQ Toggle + Aspect Ratio)
                     HStack(spacing: 20) {
                         Button(action: {
                             settings.isShuffleOn.toggle()
+                            playerVM.updateShuffleState(isOn: settings.isShuffleOn)
                         }) {
                             Image(systemName: settings.isShuffleOn ? "shuffle.circle.fill" : "shuffle.circle")
                                 .font(.system(size: 30))
@@ -57,6 +89,27 @@ struct PlayerView: View {
                                 .font(.system(size: 30))
                                 .foregroundColor(showEQ ? .blue : .white)
                                 .shadow(radius: 5)
+                        }
+                        
+                        Button(action: {
+                            cycleAspectRatio()
+                            resetControlTimer()
+                        }) {
+                            Image(systemName: "aspectratio")
+                                .font(.system(size: 30))
+                                .foregroundColor(.white)
+                                .shadow(radius: 5)
+                        }
+                        
+                        // Small Toast for Ratio
+                        if let message = toastMessage {
+                            Text(message)
+                                .font(.caption)
+                                .bold()
+                                .foregroundColor(.white)
+                                .padding(4)
+                                .background(Color.black.opacity(0.6))
+                                .cornerRadius(4)
                         }
                         
                         Spacer()
@@ -246,6 +299,26 @@ struct PlayerView: View {
         case .Jazz: return [0.4, 0.5, 0.6, 0.5, 0.4, 0.3]
         case .HipHop: return [0.8, 0.7, 0.6, 0.5, 0.6, 0.7]
         case .Electronic: return [0.7, 0.8, 0.6, 0.5, 0.7, 0.6]
+        }
+    }
+    
+    private func cycleAspectRatio() {
+        let all = AspectRatioMode.allCases
+        if let idx = all.firstIndex(of: aspectRatioMode) {
+            let nextIdx = (idx + 1) % all.count
+            aspectRatioMode = all[nextIdx]
+            showToast(aspectRatioMode.rawValue)
+        }
+    }
+    
+    @State private var toastMessage: String?
+    
+    private func showToast(_ message: String) {
+        toastMessage = message
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            if toastMessage == message {
+                withAnimation { toastMessage = nil }
+            }
         }
     }
 }
