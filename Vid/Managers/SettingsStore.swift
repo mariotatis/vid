@@ -7,6 +7,8 @@ import UniformTypeIdentifiers
 class SettingsStore: ObservableObject {
     @AppStorage("shuffleMode") var isShuffleOn: Bool = false
     @AppStorage("aspectRatioMode") var aspectRatioMode: AspectRatioMode = .default
+    @AppStorage("lastContextType") var lastContextType: String = "" // "all" or "playlist"
+    @AppStorage("lastPlaylistId") var lastPlaylistId: String = ""
     
     @Published var preampValue: Double = 0.5 {
         didSet {

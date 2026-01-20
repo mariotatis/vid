@@ -5,7 +5,8 @@ struct PlaylistDetailView: View {
     @ObservedObject var playlistManager: PlaylistManager
     @ObservedObject var videoManager: VideoManager
     @EnvironmentObject var playerVM: PlayerViewModel
-    @ObservedObject var settingsStore: SettingsStore
+    @ObservedObject var settings: SettingsStore
+    @FocusState private var focusedElement: AppFocus?
     
     // We need to resolve videoIds to Video objects.
     // Since Playlist is a Struct (value type), and we want to know when it updates (though the list passed in is static value).
@@ -21,13 +22,6 @@ struct PlaylistDetailView: View {
         }
     }
     
-    init(playlist: Playlist, playlistManager: PlaylistManager, videoManager: VideoManager, settings: SettingsStore) {
-        self.playlist = playlist
-        self.playlistManager = playlistManager
-        self.videoManager = videoManager
-        self.settingsStore = settings
-    }
-    
     var body: some View {
         Group {
             if resolvedVideos.isEmpty {
@@ -37,8 +31,10 @@ struct PlaylistDetailView: View {
                         .foregroundColor(.secondary)
                 }
             } else {
-                VideoListView(videos: resolvedVideos, onDelete: deleteVideo, onPlay: { video in
-                    playerVM.play(video: video, from: resolvedVideos, settings: settingsStore)
+                VideoListView(videos: resolvedVideos, focusedElement: $focusedElement, onDelete: { offsets in deleteVideo(at: offsets) }, onPlay: { video in
+                    settings.lastContextType = "playlist"
+                    settings.lastPlaylistId = playlist.id.uuidString
+                    playerVM.play(video: video, from: resolvedVideos, settings: settings)
                 })
             }
         }
@@ -47,6 +43,16 @@ struct PlaylistDetailView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 NavigationLink(destination: AddVideosToPlaylistView(playlistId: playlist.id, videoManager: videoManager, playlistManager: playlistManager)) {
                     Image(systemName: "plus")
+                        .vidFocusHighlight()
+                }
+                .buttonStyle(VidButtonStyle())
+                .focused($focusedElement, equals: .search)
+            }
+        }
+        .onAppear {
+            if focusedElement == nil {
+                if let firstId = resolvedVideos.first?.id {
+                    focusedElement = .videoItem(firstId)
                 }
             }
         }

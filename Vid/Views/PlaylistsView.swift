@@ -7,6 +7,7 @@ struct PlaylistsView: View {
     
     @State private var showCreatePlaylist = false
     @State private var newPlaylistName = ""
+    @FocusState private var focusedElement: AppFocus?
     
     var body: some View {
         NavigationView {
@@ -15,12 +16,15 @@ struct PlaylistsView: View {
                     NavigationLink(destination: PlaylistDetailView(playlist: playlist, playlistManager: playlistManager, videoManager: videoManager, settings: settings)) {
                         Text(playlist.name)
                             .font(.headline)
+                            .vidFocusHighlight()
                     }
+                    .focused($focusedElement, equals: .playlistItem(playlist.id))
                 }
                 .onDelete { indexSet in
                     playlistManager.deletePlaylist(at: indexSet)
                 }
             }
+            .listStyle(.plain)
             .navigationTitle("Playlists")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -30,6 +34,8 @@ struct PlaylistsView: View {
                     }) {
                         Image(systemName: "plus")
                     }
+                    .buttonStyle(VidButtonStyle())
+                    .focused($focusedElement, equals: .search) // Reusing search context for top-bar plus
                 }
             }
             .alert("New Playlist", isPresented: $showCreatePlaylist) {
@@ -43,5 +49,12 @@ struct PlaylistsView: View {
             }
         }
         .navigationViewStyle(.stack)
+        .onAppear {
+            if focusedElement == nil {
+                if let firstId = playlistManager.playlists.first?.id {
+                    focusedElement = .playlistItem(firstId)
+                }
+            }
+        }
     }
 }

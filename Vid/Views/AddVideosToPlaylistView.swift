@@ -8,6 +8,7 @@ struct AddVideosToPlaylistView: View {
     
     @State private var searchText = ""
     @State private var selectedVideoIds: Set<String> = []
+    @FocusState private var focusedElement: AppFocus?
     
     var filteredVideos: [Video] {
         if searchText.isEmpty {
@@ -19,7 +20,7 @@ struct AddVideosToPlaylistView: View {
     
     var body: some View {
         VStack {
-            SearchBar(text: $searchText)
+            SearchBar(text: $searchText, focused: $focusedElement)
             
             List {
                 ForEach(filteredVideos) { video in
@@ -34,8 +35,14 @@ struct AddVideosToPlaylistView: View {
                             Text(video.durationFormatted)
                                 .foregroundColor(.secondary)
                         }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 8)
+                        .background(focusedElement == .videoItem(video.id) ? Color.blue.opacity(0.15) : Color.clear)
+                        .cornerRadius(8)
+                        .vidFocusHighlight()
                     }
-                    .foregroundColor(.primary)
+                    .buttonStyle(.plain)
+                    .focused($focusedElement, equals: .videoItem(video.id))
                 }
             }
             
@@ -44,13 +51,17 @@ struct AddVideosToPlaylistView: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
             }
+            .buttonStyle(VidButtonStyle())
             .padding()
+            .focused($focusedElement, equals: .eqReset) // Reusing eqReset as placeholder for Save context
         }
         .navigationTitle("Add Videos")
+        .onAppear {
+            if focusedElement == nil {
+                focusedElement = .search
+            }
+        }
     }
     
     func toggleSelection(_ video: Video) {
@@ -70,16 +81,20 @@ struct AddVideosToPlaylistView: View {
 
 struct SearchBar: View {
     @Binding var text: String
+    var focused: FocusState<AppFocus?>.Binding
     
     var body: some View {
         HStack {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(.gray)
             TextField("Search", text: $text)
+                .focused(focused, equals: .search)
         }
         .padding(8)
         .background(Color(.systemGray6))
         .cornerRadius(10)
         .padding(.horizontal)
+        .vidFocusHighlight()
+        .focused(focused, equals: .search)
     }
 }

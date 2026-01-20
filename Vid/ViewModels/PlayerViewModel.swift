@@ -2,6 +2,7 @@ import Foundation
 import AVKit
 import AVFoundation
 import Combine
+import MediaPlayer
 
 class PlayerViewModel: ObservableObject {
     @Published var player: AVPlayer = AVPlayer()
@@ -36,6 +37,7 @@ class PlayerViewModel: ObservableObject {
         setupAudioEngine()
         setupObservers()
         addTimeObserver()
+        setupRemoteCommandCenter()
     }
     
     private func setupAudioSession() {
@@ -129,8 +131,8 @@ class PlayerViewModel: ObservableObject {
             
             // Map individual band (0.0-1.0) to -12dB to +12dB
             let bandGain = Float((value - 0.5) * 24)
-            // Map preamp (0.0-1.0) to -10dB to +10dB
-            let preampGain = Float((preamp - 0.5) * 20)
+            // Map preamp (0.0-1.0) to -15dB to +15dB
+            let preampGain = Float((preamp - 0.5) * 30)
             
             // Final gain combined, clamped to standard ranges if necessary 
             // AVAudioUnitEQ usually supports quite a wide range (-24 to 24 or more)
@@ -168,12 +170,15 @@ class PlayerViewModel: ObservableObject {
         
         isPlaying = true
         showPlayer = true
+        updateNowPlayingInfo()
         
         // Update duration
         Task {
             if let duration = try? await playerItem.asset.load(.duration) {
+                let seconds = CMTimeGetSeconds(duration)
                 await MainActor.run {
-                    self.duration = CMTimeGetSeconds(duration)
+                    self.duration = seconds
+                    self.updateNowPlayingInfo()
                 }
             }
         }
@@ -200,6 +205,7 @@ class PlayerViewModel: ObservableObject {
         }
         
         currentTime = time
+        updateNowPlayingInfo()
     }
     
     func playNext() {
@@ -216,6 +222,11 @@ class PlayerViewModel: ObservableObject {
     }
     
     func playPrevious() {
+        if currentTime > 5 {
+            seek(to: 0)
+            return
+        }
+        
         guard !queue.isEmpty else { return }
         
         var prevIndex = currentIndex - 1
@@ -246,6 +257,65 @@ class PlayerViewModel: ObservableObject {
             playerNode.play()
         }
         isPlaying.toggle()
+        updateNowPlayingInfo()
+    }
+    
+    // MARK: - Remote Commands & Metadata
+    
+    private func setupRemoteCommandCenter() {
+        let commandCenter = MPRemoteCommandCenter.shared()
+        
+        // Play/Pause
+        commandCenter.playCommand.addTarget { [weak self] _ in
+            self?.togglePlayPause()
+            return .success
+        }
+        
+        commandCenter.pauseCommand.addTarget { [weak self] _ in
+            self?.togglePlayPause()
+            return .success
+        }
+        
+        commandCenter.togglePlayPauseCommand.addTarget { [weak self] _ in
+            self?.togglePlayPause()
+            return .success
+        }
+        
+        // Track Skipping
+        commandCenter.nextTrackCommand.addTarget { [weak self] _ in
+            self?.playNext()
+            return .success
+        }
+        
+        commandCenter.previousTrackCommand.addTarget { [weak self] _ in
+            self?.playPrevious()
+            return .success
+        }
+        
+        // Disable behavior that might interfere (like 15s skip)
+        commandCenter.skipForwardCommand.isEnabled = false
+        commandCenter.skipBackwardCommand.isEnabled = false
+        commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in
+            if let positionEvent = event as? MPChangePlaybackPositionCommandEvent {
+                self?.seek(to: positionEvent.positionTime)
+                return .success
+            }
+            return .commandFailed
+        }
+    }
+    
+    private func updateNowPlayingInfo() {
+        var nowPlayingInfo = [String: Any]()
+        
+        if let video = currentVideo {
+            nowPlayingInfo[MPMediaItemPropertyTitle] = video.name
+            nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
+        }
+        
+        nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = currentTime
+        nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? 1.0 : 0.0
+        
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
     }
     
     func updateShuffleState(isOn: Bool) {

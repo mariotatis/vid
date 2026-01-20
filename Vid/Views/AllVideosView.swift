@@ -11,6 +11,7 @@ struct AllVideosView: View {
     @State private var sortOption: SortOption = .name
     @State private var sortAscending: Bool = true
     @State private var searchText = ""
+    @FocusState private var focusedElement: AppFocus?
     
     enum SortOption {
         case name, duration
@@ -51,7 +52,9 @@ struct AllVideosView: View {
                             .foregroundColor(.secondary)
                     }
                 } else {
-                    VideoListView(videos: sortedVideos, onDelete: deleteVideo, onPlay: { video in
+                    VideoListView(videos: sortedVideos, focusedElement: $focusedElement, onDelete: { offsets in deleteVideo(at: offsets) }, onPlay: { video in
+                        settings.lastContextType = "all"
+                        settings.lastPlaylistId = ""
                         playerVM.play(video: video, from: sortedVideos, settings: settings)
                     })
                 }
@@ -67,6 +70,8 @@ struct AllVideosView: View {
                         }) {
                             Image(systemName: "plus")
                         }
+                        .buttonStyle(VidButtonStyle())
+                        .focused($focusedElement, equals: .search) // Grouping under search for simplicity or define .plus
                         
                         Button(action: {
                             Task {
@@ -75,6 +80,8 @@ struct AllVideosView: View {
                         }) {
                             Image(systemName: "arrow.clockwise")
                         }
+                        .buttonStyle(VidButtonStyle())
+                        .focused($focusedElement, equals: .filter) // Simplified mapping
                     }
                 }
                 
@@ -92,7 +99,9 @@ struct AllVideosView: View {
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
+                            .vidFocusHighlight()
                     }
+                    .focused($focusedElement, equals: .sort)
                 }
             }
 
@@ -111,6 +120,12 @@ struct AllVideosView: View {
         .onAppear {
             if videoManager.videos.isEmpty {
                 videoManager.loadVideos()
+            }
+            // Set initial focus
+            if focusedElement == nil {
+                if let firstId = sortedVideos.first?.id {
+                    focusedElement = .videoItem(firstId)
+                }
             }
         }
     }

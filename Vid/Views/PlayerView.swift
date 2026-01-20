@@ -1,10 +1,6 @@
 import SwiftUI
 import AVKit
 
-enum MusicType: String, CaseIterable {
-    case Jazz, HipHop, Electronic
-}
-
 enum AspectRatioMode: String, CaseIterable {
     case `default` = "Default"
     case fill = "Fill"
@@ -40,14 +36,13 @@ struct PlayerView: View {
     @State private var showEQ = false
     @State private var controlHideTimer: Timer?
     @State private var isDraggingSlider = false
+    @FocusState private var focusedElement: AppFocus?
     
-    // EQ State
-    @State private var musicType: MusicType = .Jazz
     // 6 Bands frequencies
     let frequencies: [String] = ["60Hz", "150Hz", "400Hz", "1kHz", "2.4kHz", "15kHz"]
     
-    // Aspect Ratio State - now moved to settings
-    
+    @State private var toastMessage: String?
+
     var body: some View {
         ZStack {
             Color.black.edgesIgnoringSafeArea(.all)
@@ -78,172 +73,189 @@ struct PlayerView: View {
             // Controls Overlay
             if showControls {
                 VStack {
-                    // Top Bar Container
-                    VStack(alignment: .leading, spacing: 12) {
-                        // Icons Bar
-                        HStack(spacing: 12) {
-                            Button(action: {
-                                settings.isShuffleOn.toggle()
-                                playerVM.updateShuffleState(isOn: settings.isShuffleOn)
-                            }) {
-                                Image(systemName: settings.isShuffleOn ? "shuffle.circle.fill" : "shuffle.circle")
-                                    .font(.system(size: 28))
-                                    .padding(6)
-                                    .background(Color.white.opacity(0.001))
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundColor(settings.isShuffleOn ? .blue : .white)
-                            
-                            Button(action: {
-                                withAnimation { showEQ.toggle() }
-                                resetControlTimer()
-                            }) {
-                                Image(systemName: "slider.vertical.3")
-                                    .font(.system(size: 28))
-                                    .padding(6)
-                                    .background(Color.white.opacity(0.001))
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundColor(showEQ ? .blue : .white)
-                            
-                            HStack(spacing: 4) {
-                                Button(action: {
-                                    cycleAspectRatio()
-                                    resetControlTimer()
-                                }) {
-                                    Image(systemName: "aspectratio")
-                                        .font(.system(size: 28))
-                                        .padding(6)
-                                        .background(Color.white.opacity(0.001))
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundColor(.white)
-                                
-                                // Small Toast for Ratio
-                                if let message = toastMessage {
-                                    Text(message)
-                                        .font(.system(size: 12, weight: .bold))
+                    GeometryReader { innerGeo in
+                        let isLandscape = innerGeo.size.width > innerGeo.size.height
+                        
+                        VStack {
+                            // Top Bar Container
+                            if !(showEQ && isLandscape) {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    // Icons Bar
+                                    HStack(spacing: 12) {
+                                        Button(action: {
+                                            settings.isShuffleOn.toggle()
+                                            playerVM.updateShuffleState(isOn: settings.isShuffleOn)
+                                        }) {
+                                            Image(systemName: settings.isShuffleOn ? "shuffle.circle.fill" : "shuffle.circle")
+                                                .font(.system(size: 22))
+                                                .padding(6)
+                                                .background(Color.white.opacity(0.001))
+                                        }
+                                        .buttonStyle(VidButtonStyle())
+                                        .foregroundColor(settings.isShuffleOn ? .blue : .white)
+                                        .focused($focusedElement, equals: .playerShuffle)
+                                        
+                                        Button(action: {
+                                            withAnimation { showEQ.toggle() }
+                                            resetControlTimer()
+                                        }) {
+                                            Image(systemName: "slider.vertical.3")
+                                                .font(.system(size: 22))
+                                                .padding(6)
+                                                .background(Color.white.opacity(0.001))
+                                        }
+                                        .buttonStyle(VidButtonStyle())
+                                        .foregroundColor(showEQ ? .blue : .white)
+                                        .focused($focusedElement, equals: .playerEQ)
+                                        
+                                        HStack(spacing: 4) {
+                                            Button(action: {
+                                                cycleAspectRatio()
+                                                resetControlTimer()
+                                            }) {
+                                                Image(systemName: "aspectratio")
+                                                    .font(.system(size: 22))
+                                                    .padding(6)
+                                                    .background(Color.white.opacity(0.001))
+                                            }
+                                            .buttonStyle(VidButtonStyle())
+                                            .foregroundColor(.white)
+                                            .focused($focusedElement, equals: .playerRatio)
+                                            
+                                            // Small Toast for Ratio
+                                            if let message = toastMessage {
+                                                Text(message)
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .foregroundColor(.white)
+                                                    .padding(.horizontal, 6)
+                                                    .padding(.vertical, 4)
+                                                    .background(Color.black.opacity(0.6))
+                                                    .cornerRadius(6)
+                                                    .transition(.scale.combined(with: .opacity))
+                                            }
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        Button(action: {
+                                            playerVM.stop()
+                                        }) {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .font(.system(size: 22))
+                                                .padding(6)
+                                                .background(Color.white.opacity(0.001))
+                                        }
+                                        .buttonStyle(VidButtonStyle())
                                         .foregroundColor(.white)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 4)
-                                        .background(Color.black.opacity(0.6))
-                                        .cornerRadius(6)
-                                        .transition(.scale.combined(with: .opacity))
+                                        .focused($focusedElement, equals: .playerClose)
+                                    }
+                                    
+                                    // Video Name
+                                    if let videoName = playerVM.currentVideo?.name {
+                                        Text(videoName)
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(.white.opacity(0.9))
+                                            .lineLimit(1)
+                                            .padding(.horizontal, 8)
+                                    }
                                 }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 12)
                             }
                             
                             Spacer()
                             
-                            Button(action: {
-                                playerVM.stop()
-                            }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 28))
-                                    .padding(6)
-                                    .background(Color.white.opacity(0.001))
+                            if showEQ {
+                                EqualizerOverlay()
+                                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                            } else {
+                                // Playback Controls
+                                HStack(spacing: 20) {
+                                    Button(action: {
+                                        resetControlTimer()
+                                        playerVM.playPrevious()
+                                    }) {
+                                        Image(systemName: "backward.fill")
+                                            .font(.system(size: 32))
+                                            .padding()
+                                            .background(Color.white.opacity(0.001))
+                                    }
+                                    .buttonStyle(VidButtonStyle())
+                                    .foregroundColor(.white)
+                                    .focused($focusedElement, equals: .playerPrevious)
+                                    
+                                    Button(action: {
+                                        resetControlTimer()
+                                        playerVM.togglePlayPause()
+                                    }) {
+                                        Image(systemName: playerVM.isPlaying ? "pause.fill" : "play.fill")
+                                            .font(.system(size: 40))
+                                            .padding()
+                                            .background(Color.white.opacity(0.001))
+                                    }
+                                    .buttonStyle(VidButtonStyle())
+                                    .foregroundColor(.white)
+                                    .focused($focusedElement, equals: .playerPlayPause)
+                                    
+                                    Button(action: {
+                                        resetControlTimer()
+                                        playerVM.playNext()
+                                    }) {
+                                        Image(systemName: "forward.fill")
+                                            .font(.system(size: 32))
+                                            .padding()
+                                            .background(Color.white.opacity(0.001))
+                                    }
+                                    .buttonStyle(VidButtonStyle())
+                                    .foregroundColor(.white)
+                                    .focused($focusedElement, equals: .playerNext)
+                                }
+                                .padding(.bottom, 20)
                             }
-                            .buttonStyle(.plain)
-                            .foregroundColor(.white)
-                        }
-                        
-                        // Video Name
-                        if let videoName = playerVM.currentVideo?.name {
-                            Text(videoName)
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.9))
-                                .lineLimit(1)
-                                .padding(.horizontal, 8)
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 12)
-                    
-                    Spacer()
-                    
-                    if showEQ {
-                        EqualizerOverlay()
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                    } else {
-                        // Playback Controls
-                        HStack(spacing: 50) {
-                            Button(action: {
-                                resetControlTimer()
-                                playerVM.playPrevious()
-                            }) {
-                                Image(systemName: "backward.fill")
-                                    .font(.system(size: 40))
-                                    .padding()
-                                    .background(Color.white.opacity(0.001))
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundColor(.white)
                             
-                            Button(action: {
-                                resetControlTimer()
-                                playerVM.togglePlayPause()
-                            }) {
-                                Image(systemName: playerVM.isPlaying ? "pause.fill" : "play.fill")
-                                    .font(.system(size: 50))
-                                    .padding()
-                                    .background(Color.white.opacity(0.001))
+                            // Bottom Bar (Slider and Time)
+                            if !showEQ {
+                                HStack {
+                                    Text(formatTime(playerVM.currentTime))
+                                        .foregroundColor(.white)
+                                        .font(.caption)
+                                        .monospacedDigit()
+                                    
+                                    Slider(value: Binding(get: {
+                                        playerVM.currentTime
+                                    }, set: { newValue in
+                                        playerVM.isSeeking = true
+                                        playerVM.currentTime = newValue
+                                    }), in: 0...max(playerVM.duration, 1)) { editing in
+                                         isDraggingSlider = editing
+                                         if !editing {
+                                             playerVM.seek(to: playerVM.currentTime)
+                                             playerVM.isSeeking = false
+                                             resetControlTimer()
+                                         } else {
+                                             controlHideTimer?.invalidate()
+                                         }
+                                    }
+                                    .accentColor(.white)
+                                    .vidFocusHighlight()
+                                    .focused($focusedElement, equals: .playerSlider)
+                                    
+                                    Text(formatTime(playerVM.duration))
+                                        .foregroundColor(.white)
+                                        .font(.caption)
+                                        .monospacedDigit()
+                                }
+                                .padding([.horizontal, .bottom])
                             }
-                            .buttonStyle(.plain)
-                            .foregroundColor(.white)
-                            
-                            Button(action: {
-                                resetControlTimer()
-                                playerVM.playNext()
-                            }) {
-                                Image(systemName: "forward.fill")
-                                    .font(.system(size: 40))
-                                    .padding()
-                                    .background(Color.white.opacity(0.001))
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundColor(.white)
                         }
-                        .padding(.bottom, 30)
-                    }
-                    
-                    // Bottom Bar (Slider and Time) - Always visible unless hidden by tap
-                    if !showEQ {
-                        HStack {
-                            Text(formatTime(playerVM.currentTime))
-                                .foregroundColor(.white)
-                                .font(.caption)
-                                .monospacedDigit()
-                            
-                            Slider(value: Binding(get: {
-                                playerVM.currentTime
-                            }, set: { newValue in
-                                playerVM.isSeeking = true
-                                playerVM.currentTime = newValue
-                            }), in: 0...max(playerVM.duration, 1)) { editing in
-                                 isDraggingSlider = editing
-                                 if !editing {
-                                     playerVM.seek(to: playerVM.currentTime)
-                                     playerVM.isSeeking = false
-                                     resetControlTimer()
-                                 } else {
-                                     controlHideTimer?.invalidate()
-                                 }
-                            }
-                            .accentColor(.white)
-                            // On iOS 15, Slider handles focus.
-                            
-                            Text(formatTime(playerVM.duration))
-                                .foregroundColor(.white)
-                                .font(.caption)
-                                .monospacedDigit()
-                        }
-                        .padding([.horizontal, .bottom])
                     }
                 }
-                .background(Color.black.opacity(showEQ ? 0.6 : 0.3)) // Darker background for EQ
+                .background(Color.black.opacity(showEQ ? 0.6 : 0.3))
                 .contentShape(Rectangle())
                 .onTapGesture {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         showControls = false
+                        showEQ = false
                         controlHideTimer?.invalidate()
                     }
                 }
@@ -251,20 +263,22 @@ struct PlayerView: View {
         }
         .onAppear {
             resetControlTimer()
+            if focusedElement == nil {
+                focusedElement = .playerPlayPause
+            }
         }
         .onDisappear {
             controlHideTimer?.invalidate()
         }
     }
-    
-    // Subview for EQ to keep body cleaner
+
     @ViewBuilder
     func EqualizerOverlay() -> some View {
         VStack(spacing: 15) {
-            Text("Equalizer")
-                .foregroundColor(.white)
-                .font(.headline)
-            
+            // Removed header with 'X' button
+            Spacer()
+                .frame(height: 15)
+
             // Preamp Slider
             VStack(spacing: 4) {
                 HStack {
@@ -272,52 +286,60 @@ struct PlayerView: View {
                         .font(.caption)
                         .foregroundColor(.gray)
                     Spacer()
-                    let db = (settings.preampValue - 0.5) * 20
+                    let db = (settings.preampValue - 0.5) * 30
                     Text(String(format: "%+.1f dB", db))
                         .font(.caption.monospacedDigit())
                         .foregroundColor(.blue)
                 }
                 .padding(.horizontal)
                 
-                Slider(value: $settings.preampValue, in: 0...1)
-                    .accentColor(.blue)
-                    .padding(.horizontal)
-            }
-            
-            Picker("Preset", selection: $musicType) {
-                ForEach(MusicType.allCases, id: \.self) { type in
-                    Text(type.rawValue).tag(type)
+                Slider(value: $settings.preampValue, in: 0...1) { editing in
+                    isDraggingSlider = editing
+                    if !editing {
+                        resetControlTimer()
+                    } else {
+                        controlHideTimer?.invalidate()
+                    }
                 }
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal)
-            .onChange(of: musicType) { newValue in
-                withAnimation {
-                    // Update settings state logic in ViewModel or here
-                    // Assuming existing logic maps enum to values
-                    let new = values(for: newValue)
-                    settings.eqValues = new
-                }
+                .accentColor(.blue)
+                .padding(.horizontal)
+                .vidFocusHighlight()
+                .focused($focusedElement, equals: .eqPreamp)
             }
             
             // Custom Vertical Sliders
             HStack(spacing: 20) {
                 ForEach(0..<6) { index in
                     VStack {
-                        // Slider
-                        VerticalSlider(value: binding(for: index))
-                            .frame(height: 120)
+                        VerticalSlider(value: binding(for: index)) { editing in
+                            isDraggingSlider = editing
+                            if !editing {
+                                resetControlTimer()
+                            } else {
+                                controlHideTimer?.invalidate()
+                            }
+                        }
+                        .frame(height: 120)
                         
                         Text(frequencies[index])
                             .font(.caption2)
                             .foregroundColor(.white)
                             .fixedSize()
                     }
+                    .vidFocusHighlight()
+                    .focused($focusedElement, equals: .eqBand(index))
                 }
             }
             .padding()
+            
+            Button("Reset EQ") {
+                settings.eqValues = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+                settings.preampValue = 0.5
+            }
+            .buttonStyle(VidButtonStyle())
+            .focused($focusedElement, equals: .eqReset)
         }
-        .background(Color.black.opacity(0.8))
+        .background(Color.black.opacity(0.7))
         .cornerRadius(20)
         .padding()
     }
@@ -340,13 +362,12 @@ struct PlayerView: View {
     
     private func resetControlTimer() {
         controlHideTimer?.invalidate()
-        // If EQ is shown, don't auto-hide
-        if showEQ { return }
         
         controlHideTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
             withAnimation {
                 if !isDraggingSlider {
                     showControls = false
+                    showEQ = false
                 }
             }
         }
@@ -360,14 +381,6 @@ struct PlayerView: View {
         return String(format: "%d:%02d", m, s)
     }
     
-    func values(for type: MusicType) -> [Double] {
-        switch type {
-        case .Jazz: return [0.4, 0.5, 0.6, 0.5, 0.4, 0.3]
-        case .HipHop: return [0.8, 0.7, 0.6, 0.5, 0.6, 0.7]
-        case .Electronic: return [0.7, 0.8, 0.6, 0.5, 0.7, 0.6]
-        }
-    }
-    
     private func cycleAspectRatio() {
         let all = AspectRatioMode.allCases
         if let idx = all.firstIndex(of: settings.aspectRatioMode) {
@@ -376,8 +389,6 @@ struct PlayerView: View {
             showToast(settings.aspectRatioMode.rawValue)
         }
     }
-    
-    @State private var toastMessage: String?
     
     private func showToast(_ message: String) {
         toastMessage = message
@@ -389,9 +400,9 @@ struct PlayerView: View {
     }
 }
 
-// Custom Vertical Slider Component
 struct VerticalSlider: View {
     @Binding var value: Double // 0.0 to 1.0
+    var onEditingChanged: (Bool) -> Void
     
     var body: some View {
         GeometryReader { geo in
@@ -409,19 +420,22 @@ struct VerticalSlider: View {
                 // Thumb
                 Circle()
                     .fill(Color.white)
-                    .frame(width: 16, height: 16)
-                    .offset(y: -CGFloat(value) * geo.size.height + 8)
+                    .frame(width: 28, height: 28)
+                    .offset(y: -CGFloat(value) * geo.size.height + 14)
             }
             .frame(width: 20)
             .contentShape(Rectangle())
             .gesture(
-                DragGesture()
+                DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
+                        onEditingChanged(true)
                         let height = geo.size.height
-                        // Calculate value from bottom up
                         let locationY = height - gesture.location.y
                         let percentage = locationY / height
                         self.value = min(max(Double(percentage), 0.0), 1.0)
+                    }
+                    .onEnded { _ in
+                        onEditingChanged(false)
                     }
             )
         }
