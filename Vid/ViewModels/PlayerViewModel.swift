@@ -5,6 +5,7 @@ import Combine
 import MediaPlayer
 
 class PlayerViewModel: ObservableObject {
+    static let shared = PlayerViewModel()
     @Published var player: AVPlayer = AVPlayer()
     @Published var currentVideo: Video?
     @Published var isPlaying: Bool = false
@@ -172,16 +173,33 @@ class PlayerViewModel: ObservableObject {
         showPlayer = true
         updateNowPlayingInfo()
         
-        // Update duration
         Task {
-            if let duration = try? await playerItem.asset.load(.duration) {
-                let seconds = CMTimeGetSeconds(duration)
-                await MainActor.run {
-                    self.duration = seconds
-                    self.updateNowPlayingInfo()
-                }
+            let duration = playerItem.asset.duration
+            let seconds = CMTimeGetSeconds(duration)
+            await MainActor.run {
+                self.duration = seconds
+                self.updateNowPlayingInfo()
             }
         }
+        
+        // 4. Donate User Activity for Siri (iOS 15 legacy support)
+        donatePlayPlaylistActivity(for: video)
+    }
+    
+    private func donatePlayPlaylistActivity(for video: Video) {
+        let activity = NSUserActivity(activityType: "com.vid.playPlaylist")
+        activity.title = "Play \(video.name)"
+        activity.userInfo = ["videoUrl": video.url.absoluteString]
+        activity.isEligibleForSearch = true
+        activity.isEligibleForPrediction = true
+        activity.persistentIdentifier = NSUserActivityPersistentIdentifier("play_\(video.name)")
+        
+        // Localized Title for Shortcuts app
+        if Locale.current.identifier.contains("es") {
+            activity.title = "Reproducir \(video.name)"
+        }
+        
+        activity.becomeCurrent()
     }
     
     func seek(to time: Double) {
@@ -245,6 +263,8 @@ class PlayerViewModel: ObservableObject {
         engine.stop()
         isPlaying = false
         showPlayer = false
+        // Resign activity
+        NSUserActivity.deleteAllSavedUserActivities { }
     }
     
     func togglePlayPause() {

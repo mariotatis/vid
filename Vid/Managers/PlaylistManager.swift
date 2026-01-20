@@ -3,12 +3,29 @@ import SwiftUI
 import Combine
 
 class PlaylistManager: ObservableObject {
+    static let shared = PlaylistManager()
     @Published var playlists: [Playlist] = []
     
     private let saveKey = "saved_playlists"
     
     init() {
         loadPlaylists()
+        donateAllPlaylists()
+    }
+    
+    private func donateAllPlaylists() {
+        for playlist in playlists {
+            let activity = NSUserActivity(activityType: "com.vid.playPlaylist")
+            activity.title = "Play playlist \(playlist.name)"
+            if Locale.current.identifier.contains("es") {
+                activity.title = "Reproducir lista \(playlist.name)"
+            }
+            activity.userInfo = ["playlistId": playlist.id.uuidString]
+            activity.isEligibleForPrediction = true
+            activity.isEligibleForSearch = true
+            activity.persistentIdentifier = NSUserActivityPersistentIdentifier("playlist_\(playlist.id.uuidString)")
+            activity.becomeCurrent()
+        }
     }
     
     func createPlaylist(name: String) {
@@ -46,6 +63,7 @@ class PlaylistManager: ObservableObject {
         if let encoded = try? JSONEncoder().encode(playlists) {
             UserDefaults.standard.set(encoded, forKey: saveKey)
         }
+        donateAllPlaylists()
     }
     
     private func loadPlaylists() {

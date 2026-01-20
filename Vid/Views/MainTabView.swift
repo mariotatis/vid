@@ -1,10 +1,10 @@
 import SwiftUI
 
 struct MainTabView: View {
-    @StateObject var videoManager = VideoManager()
-    @StateObject var playlistManager = PlaylistManager()
-    @StateObject var settingsStore = SettingsStore()
-    @StateObject var playerVM = PlayerViewModel()
+    @StateObject var videoManager = VideoManager.shared
+    @StateObject var playlistManager = PlaylistManager.shared
+    @StateObject var settingsStore = SettingsStore.shared
+    @StateObject var playerVM = PlayerViewModel.shared
     
     var body: some View {
         ZStack {
@@ -32,6 +32,32 @@ struct MainTabView: View {
         }
         .onAppear {
             autoPlayLastContext()
+            donateGenericActivities()
+        }
+        .onContinueUserActivity("com.vid.playPlaylist") { activity in
+            handlePlayPlaylistActivity(activity)
+        }
+    }
+    
+    private func handlePlayPlaylistActivity(_ activity: NSUserActivity) {
+        if let playlistIdString = activity.userInfo?["playlistId"] as? String,
+           let playlistId = UUID(uuidString: playlistIdString) {
+            
+            // Find playlist
+            if let playlist = playlistManager.playlists.first(where: { $0.id == playlistId }) {
+                let resolvedVideos = playlist.videoIds.compactMap { id in
+                    videoManager.videos.first(where: { $0.id == id })
+                }
+                if let firstVideo = resolvedVideos.first {
+                    playerVM.play(video: firstVideo, from: resolvedVideos, settings: settingsStore)
+                }
+            }
+        } else if let videoUrlString = activity.userInfo?["videoUrl"] as? String,
+                  let videoUrl = URL(string: videoUrlString) {
+            // Handle single video donation
+            if let video = videoManager.videos.first(where: { $0.url == videoUrl }) {
+                playerVM.play(video: video, from: videoManager.videos, settings: settingsStore)
+            }
         }
     }
     
@@ -56,5 +82,27 @@ struct MainTabView: View {
                 }
             }
         }
+    }
+
+    private func donateGenericActivities() {
+        // 1. Search Activity
+        let searchActivity = NSUserActivity(activityType: "com.vid.searchVideos")
+        searchActivity.title = "Search a Video on Vid"
+        if Locale.current.identifier.contains("es") {
+            searchActivity.title = "Buscar videos en Vid"
+        }
+        searchActivity.isEligibleForSearch = true
+        searchActivity.isEligibleForPrediction = true
+        searchActivity.becomeCurrent()
+        
+        // 2. Play Playlist Activity
+        let playlistActivity = NSUserActivity(activityType: "com.vid.playPlaylist")
+        playlistActivity.title = "Play a playlist on Vid"
+        if Locale.current.identifier.contains("es") {
+            playlistActivity.title = "Reproducir una lista en Vid"
+        }
+        playlistActivity.isEligibleForSearch = true
+        playlistActivity.isEligibleForPrediction = true
+        playlistActivity.becomeCurrent()
     }
 }

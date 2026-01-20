@@ -5,6 +5,7 @@ import Combine
 import UniformTypeIdentifiers
 
 class SettingsStore: ObservableObject {
+    static let shared = SettingsStore()
     @AppStorage("shuffleMode") var isShuffleOn: Bool = false
     @AppStorage("aspectRatioMode") var aspectRatioMode: AspectRatioMode = .default
     @AppStorage("lastContextType") var lastContextType: String = "" // "all" or "playlist"

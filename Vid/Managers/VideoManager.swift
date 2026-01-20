@@ -6,6 +6,7 @@ import SwiftUI
 import Combine
 
 class VideoManager: ObservableObject {
+    static let shared = VideoManager()
     @Published var videos: [Video] = []
     @Published var isLoading = false
     
@@ -14,8 +15,35 @@ class VideoManager: ObservableObject {
     }
     
     private var persistenceURL: URL? {
-        guard let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
-        return documents.appendingPathComponent("videos.json")
+        let fileManager = FileManager.default
+        guard let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return nil }
+        
+        // Create directory if it doesn't exist
+        if !fileManager.fileExists(atPath: appSupportURL.path) {
+            try? fileManager.createDirectory(at: appSupportURL, withIntermediateDirectories: true, attributes: nil)
+        }
+        
+        return appSupportURL.appendingPathComponent("videos.json")
+    }
+    
+    private func migratePersistenceIfNeeded() {
+        let fileManager = FileManager.default
+        guard let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let oldURL = documents.appendingPathComponent("videos.json")
+        
+        guard fileManager.fileExists(atPath: oldURL.path) else { return }
+        guard let newURL = persistenceURL else { return }
+        
+        do {
+            if fileManager.fileExists(atPath: newURL.path) {
+                try fileManager.removeItem(at: oldURL)
+            } else {
+                try fileManager.moveItem(at: oldURL, to: newURL)
+            }
+            print("Successfully migrated persistence file to \(newURL.path)")
+        } catch {
+            print("Failed to migrate persistence file: \(error)")
+        }
     }
     
     private func saveVideosToDisk() {
@@ -29,6 +57,7 @@ class VideoManager: ObservableObject {
     }
     
     private func loadVideosFromDisk() {
+        migratePersistenceIfNeeded()
         guard let url = persistenceURL, FileManager.default.fileExists(atPath: url.path) else { return }
         do {
             let data = try Data(contentsOf: url)
@@ -113,13 +142,12 @@ class VideoManager: ObservableObject {
             for url in videoURLs {
                 let asset = AVURLAsset(url: url)
                 // load(.duration) is async
-                if let durationTime = try? await asset.load(.duration) {
-                    let duration = CMTimeGetSeconds(durationTime)
-                     // Important: We need a stable ID logic if we want playlists to survive reloads.
-                     // But for now, we follow the existing pattern, just fixing the reload behavior.
-                    let video = Video(name: url.deletingPathExtension().lastPathComponent, url: url, duration: duration)
-                    loadedVideos.append(video)
-                }
+                let durationTime = asset.duration
+                let duration = CMTimeGetSeconds(durationTime)
+                // Important: We need a stable ID logic if we want playlists to survive reloads.
+                // But for now, we follow the existing pattern, just fixing the reload behavior.
+                let video = Video(name: url.deletingPathExtension().lastPathComponent, url: url, duration: duration)
+                loadedVideos.append(video)
             }
             
             // Sort
