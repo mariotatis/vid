@@ -147,7 +147,7 @@ class PlayerViewModel: ObservableObject {
         let playerItem = AVPlayerItem(url: video.url)
         player.replaceCurrentItem(with: playerItem)
         player.isMuted = true
-        player.allowsExternalPlayback = false
+        player.allowsExternalPlayback = true
         
         // 2. Prepare AVAudioEngine (Audio)
         do {

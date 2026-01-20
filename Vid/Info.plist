@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+
+	<!-- Game Controller Support -->
 	<key>GCSupportedGameControllers</key>
 	<array>
 		<dict>
@@ -9,5 +11,18 @@
 			<string>DirectionalGamepad</string>
 		</dict>
 	</array>
+
+	<!-- File Sharing: On My iPhone -->
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+
+	<!-- Background Modes -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+
 </dict>
 </plist>
