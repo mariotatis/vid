@@ -32,7 +32,8 @@ struct VideoListView: View {
                             }
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .foregroundColor(.blue)
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.secondary)
                         }
                         .padding(.vertical, 8)
                         .padding(.horizontal, 8)

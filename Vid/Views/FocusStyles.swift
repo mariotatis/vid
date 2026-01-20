@@ -33,13 +33,13 @@ struct VidButtonStyle: ButtonStyle {
     
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .padding(10)
-            .background(isFocused ? Color.blue : Color.white.opacity(0.1))
+            .padding(8)
+            .background(isFocused ? Color.blue : Color.black.opacity(0.001)) // Subtle hit-area, no visible bg
             .scaleEffect(isFocused ? 1.1 : 1.0)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.white, lineWidth: isFocused ? 3 : 0)
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color.white, lineWidth: isFocused ? 2 : 0)
             )
             .opacity(configuration.isPressed ? 0.7 : 1.0)
             .animation(.easeInOut(duration: 0.2), value: isFocused)

@@ -43,6 +43,7 @@ struct PlaylistDetailView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 NavigationLink(destination: AddVideosToPlaylistView(playlistId: playlist.id, videoManager: videoManager, playlistManager: playlistManager)) {
                     Image(systemName: "plus")
+                        .foregroundColor(.white)
                         .vidFocusHighlight()
                 }
                 .buttonStyle(VidButtonStyle())

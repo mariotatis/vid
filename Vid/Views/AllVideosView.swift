@@ -63,12 +63,13 @@ struct AllVideosView: View {
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search videos")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    HStack(spacing: 20) {
+                    HStack(spacing: 12) {
                         Button(action: {
                             print("Vid: Plus button tapped")
                             showFileImporter = true
                         }) {
                             Image(systemName: "plus")
+                                .foregroundColor(.white)
                         }
                         .buttonStyle(VidButtonStyle())
                         .focused($focusedElement, equals: .search) // Grouping under search for simplicity or define .plus
@@ -79,6 +80,7 @@ struct AllVideosView: View {
                             }
                         }) {
                             Image(systemName: "arrow.clockwise")
+                                .foregroundColor(.white)
                         }
                         .buttonStyle(VidButtonStyle())
                         .focused($focusedElement, equals: .filter) // Simplified mapping
@@ -99,6 +101,7 @@ struct AllVideosView: View {
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
+                            .foregroundColor(.white)
                             .vidFocusHighlight()
                     }
                     .focused($focusedElement, equals: .sort)
