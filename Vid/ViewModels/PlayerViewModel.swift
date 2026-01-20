@@ -98,11 +98,13 @@ class PlayerViewModel: ObservableObject {
         self.originalQueue = list
         
         // Observe settings for real-time EQ updates
-        settingsCancellable = settings.$eqValues.sink { [weak self] values in
-             self?.updateEQ(values)
-        }
+        settingsCancellable = settings.$eqValues.combineLatest(settings.$preampValue)
+            .sink { [weak self] (eqValues, preampValue) in
+                 self?.updateEQ(eqValues, preamp: preampValue)
+            }
+        
         // Apply initial EQ
-        updateEQ(settings.eqValues)
+        updateEQ(settings.eqValues, preamp: settings.preampValue)
         
         if isShuffleOn {
             self.queue = list.shuffled()
@@ -121,12 +123,18 @@ class PlayerViewModel: ObservableObject {
         startPlayback()
     }
     
-    private func updateEQ(_ values: [Double]) {
+    private func updateEQ(_ values: [Double], preamp: Double) {
         for (i, value) in values.enumerated() {
             guard i < eqNode.bands.count else { break }
-            // Map 0.0-1.0 to -12dB to +12dB
-            let gain = Float((value - 0.5) * 24)
-            eqNode.bands[i].gain = gain
+            
+            // Map individual band (0.0-1.0) to -12dB to +12dB
+            let bandGain = Float((value - 0.5) * 24)
+            // Map preamp (0.0-1.0) to -10dB to +10dB
+            let preampGain = Float((preamp - 0.5) * 20)
+            
+            // Final gain combined, clamped to standard ranges if necessary 
+            // AVAudioUnitEQ usually supports quite a wide range (-24 to 24 or more)
+            eqNode.bands[i].gain = bandGain + preampGain
         }
     }
     

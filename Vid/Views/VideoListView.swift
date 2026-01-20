@@ -15,20 +15,22 @@ struct VideoListView: View {
                     HStack {
                         VStack(alignment: .leading) {
                             Text(video.name)
-                                .font(.headline)
+                                .font(.subheadline)
                                 .lineLimit(1)
                             Text(video.durationFormatted)
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
-                        Image(systemName: "play.circle")
+                        Image(systemName: "chevron.right")
                             .foregroundColor(.blue)
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 8)
                 }
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
             }
             .onDelete(perform: onDelete)
         }
+        .listStyle(.plain)
     }
 }

@@ -6,7 +6,37 @@ import UniformTypeIdentifiers
 
 class SettingsStore: ObservableObject {
     @AppStorage("shuffleMode") var isShuffleOn: Bool = false
-    @Published var eqValues: [Double] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5] // Local state (Double for easier storage/compatibility)
+    @AppStorage("aspectRatioMode") var aspectRatioMode: AspectRatioMode = .default
     
-    init() {}
+    @Published var preampValue: Double = 0.5 {
+        didSet {
+            UserDefaults.standard.set(preampValue, forKey: "preampValue")
+        }
+    }
+    
+    @Published var eqValues: [Double] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5] {
+        didSet {
+            saveEQ()
+        }
+    }
+    
+    init() {
+        loadEQ()
+        if let savedPreamp = UserDefaults.standard.object(forKey: "preampValue") as? Double {
+            preampValue = savedPreamp
+        }
+    }
+    
+    private func saveEQ() {
+        if let data = try? JSONEncoder().encode(eqValues) {
+            UserDefaults.standard.set(data, forKey: "eqValues")
+        }
+    }
+    
+    private func loadEQ() {
+        if let data = UserDefaults.standard.data(forKey: "eqValues"),
+           let decoded = try? JSONDecoder().decode([Double].self, from: data) {
+            eqValues = decoded
+        }
+    }
 }

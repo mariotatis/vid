@@ -46,84 +46,117 @@ struct PlayerView: View {
     // 6 Bands frequencies
     let frequencies: [String] = ["60Hz", "150Hz", "400Hz", "1kHz", "2.4kHz", "15kHz"]
     
-    // Aspect Ratio State
-    @State private var aspectRatioMode: AspectRatioMode = .default
+    // Aspect Ratio State - now moved to settings
     
     var body: some View {
         ZStack {
             Color.black.edgesIgnoringSafeArea(.all)
             
             // Custom Video Player (Hidden Controls)
-            CustomVideoPlayer(player: playerVM.player, videoGravity: aspectRatioMode.gravity)
-                .edgesIgnoringSafeArea(.all)
-                .aspectRatio(aspectRatioMode.ratioValue, contentMode: .fit)
-                .onTapGesture {
-                    withAnimation {
-                        showControls.toggle()
+            GeometryReader { geometry in
+                let ratio = settings.aspectRatioMode.ratioValue
+                
+                CustomVideoPlayer(player: playerVM.player, videoGravity: settings.aspectRatioMode.gravity)
+                    .edgesIgnoringSafeArea(.all)
+                    .if(ratio != nil) { view in
+                        view.aspectRatio(ratio!, contentMode: .fit)
                     }
-                    if showControls {
-                        resetControlTimer()
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            if showControls {
+                                showControls = false
+                                controlHideTimer?.invalidate()
+                            } else {
+                                showControls = true
+                                resetControlTimer()
+                            }
+                        }
                     }
-                }
+            }
             
             // Controls Overlay
             if showControls {
                 VStack {
-                    // Top Bar (Close Button + Shuffle + EQ Toggle + Aspect Ratio)
-                    HStack(spacing: 20) {
-                        Button(action: {
-                            settings.isShuffleOn.toggle()
-                            playerVM.updateShuffleState(isOn: settings.isShuffleOn)
-                        }) {
-                            Image(systemName: settings.isShuffleOn ? "shuffle.circle.fill" : "shuffle.circle")
-                                .font(.system(size: 30))
-                                .foregroundColor(settings.isShuffleOn ? .blue : .white)
-                                .shadow(radius: 5)
-                        }
-                        
-                        Button(action: {
-                            withAnimation { showEQ.toggle() }
-                            resetControlTimer()
-                        }) {
-                            Image(systemName: "slider.vertical.3")
-                                .font(.system(size: 30))
-                                .foregroundColor(showEQ ? .blue : .white)
-                                .shadow(radius: 5)
-                        }
-                        
-                        Button(action: {
-                            cycleAspectRatio()
-                            resetControlTimer()
-                        }) {
-                            Image(systemName: "aspectratio")
-                                .font(.system(size: 30))
+                    // Top Bar Container
+                    VStack(alignment: .leading, spacing: 12) {
+                        // Icons Bar
+                        HStack(spacing: 12) {
+                            Button(action: {
+                                settings.isShuffleOn.toggle()
+                                playerVM.updateShuffleState(isOn: settings.isShuffleOn)
+                            }) {
+                                Image(systemName: settings.isShuffleOn ? "shuffle.circle.fill" : "shuffle.circle")
+                                    .font(.system(size: 28))
+                                    .padding(6)
+                                    .background(Color.white.opacity(0.001))
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(settings.isShuffleOn ? .blue : .white)
+                            
+                            Button(action: {
+                                withAnimation { showEQ.toggle() }
+                                resetControlTimer()
+                            }) {
+                                Image(systemName: "slider.vertical.3")
+                                    .font(.system(size: 28))
+                                    .padding(6)
+                                    .background(Color.white.opacity(0.001))
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(showEQ ? .blue : .white)
+                            
+                            HStack(spacing: 4) {
+                                Button(action: {
+                                    cycleAspectRatio()
+                                    resetControlTimer()
+                                }) {
+                                    Image(systemName: "aspectratio")
+                                        .font(.system(size: 28))
+                                        .padding(6)
+                                        .background(Color.white.opacity(0.001))
+                                }
+                                .buttonStyle(.plain)
                                 .foregroundColor(.white)
-                                .shadow(radius: 5)
+                                
+                                // Small Toast for Ratio
+                                if let message = toastMessage {
+                                    Text(message)
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 4)
+                                        .background(Color.black.opacity(0.6))
+                                        .cornerRadius(6)
+                                        .transition(.scale.combined(with: .opacity))
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                playerVM.stop()
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 28))
+                                    .padding(6)
+                                    .background(Color.white.opacity(0.001))
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(.white)
                         }
                         
-                        // Small Toast for Ratio
-                        if let message = toastMessage {
-                            Text(message)
-                                .font(.caption)
-                                .bold()
-                                .foregroundColor(.white)
-                                .padding(4)
-                                .background(Color.black.opacity(0.6))
-                                .cornerRadius(4)
-                        }
-                        
-                        Spacer()
-                        
-                        Button(action: {
-                            playerVM.stop()
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 30))
-                                .foregroundColor(.white)
-                                .shadow(radius: 5)
+                        // Video Name
+                        if let videoName = playerVM.currentVideo?.name {
+                            Text(videoName)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.9))
+                                .lineLimit(1)
+                                .padding(.horizontal, 8)
                         }
                     }
-                    .padding()
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 12)
                     
                     Spacer()
                     
@@ -139,9 +172,11 @@ struct PlayerView: View {
                             }) {
                                 Image(systemName: "backward.fill")
                                     .font(.system(size: 40))
-                                    .foregroundColor(.white)
-                                    .shadow(radius: 5)
+                                    .padding()
+                                    .background(Color.white.opacity(0.001))
                             }
+                            .buttonStyle(.plain)
+                            .foregroundColor(.white)
                             
                             Button(action: {
                                 resetControlTimer()
@@ -149,9 +184,11 @@ struct PlayerView: View {
                             }) {
                                 Image(systemName: playerVM.isPlaying ? "pause.fill" : "play.fill")
                                     .font(.system(size: 50))
-                                    .foregroundColor(.white)
-                                    .shadow(radius: 5)
+                                    .padding()
+                                    .background(Color.white.opacity(0.001))
                             }
+                            .buttonStyle(.plain)
+                            .foregroundColor(.white)
                             
                             Button(action: {
                                 resetControlTimer()
@@ -159,9 +196,11 @@ struct PlayerView: View {
                             }) {
                                 Image(systemName: "forward.fill")
                                     .font(.system(size: 40))
-                                    .foregroundColor(.white)
-                                    .shadow(radius: 5)
+                                    .padding()
+                                    .background(Color.white.opacity(0.001))
                             }
+                            .buttonStyle(.plain)
+                            .foregroundColor(.white)
                         }
                         .padding(.bottom, 30)
                     }
@@ -190,6 +229,7 @@ struct PlayerView: View {
                                  }
                             }
                             .accentColor(.white)
+                            // On iOS 15, Slider handles focus.
                             
                             Text(formatTime(playerVM.duration))
                                 .foregroundColor(.white)
@@ -200,6 +240,13 @@ struct PlayerView: View {
                     }
                 }
                 .background(Color.black.opacity(showEQ ? 0.6 : 0.3)) // Darker background for EQ
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showControls = false
+                        controlHideTimer?.invalidate()
+                    }
+                }
             }
         }
         .onAppear {
@@ -213,10 +260,29 @@ struct PlayerView: View {
     // Subview for EQ to keep body cleaner
     @ViewBuilder
     func EqualizerOverlay() -> some View {
-        VStack {
+        VStack(spacing: 15) {
             Text("Equalizer")
                 .foregroundColor(.white)
                 .font(.headline)
+            
+            // Preamp Slider
+            VStack(spacing: 4) {
+                HStack {
+                    Text("Preamp")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    Spacer()
+                    let db = (settings.preampValue - 0.5) * 20
+                    Text(String(format: "%+.1f dB", db))
+                        .font(.caption.monospacedDigit())
+                        .foregroundColor(.blue)
+                }
+                .padding(.horizontal)
+                
+                Slider(value: $settings.preampValue, in: 0...1)
+                    .accentColor(.blue)
+                    .padding(.horizontal)
+            }
             
             Picker("Preset", selection: $musicType) {
                 ForEach(MusicType.allCases, id: \.self) { type in
@@ -304,10 +370,10 @@ struct PlayerView: View {
     
     private func cycleAspectRatio() {
         let all = AspectRatioMode.allCases
-        if let idx = all.firstIndex(of: aspectRatioMode) {
+        if let idx = all.firstIndex(of: settings.aspectRatioMode) {
             let nextIdx = (idx + 1) % all.count
-            aspectRatioMode = all[nextIdx]
-            showToast(aspectRatioMode.rawValue)
+            settings.aspectRatioMode = all[nextIdx]
+            showToast(settings.aspectRatioMode.rawValue)
         }
     }
     
@@ -358,6 +424,16 @@ struct VerticalSlider: View {
                         self.value = min(max(Double(percentage), 0.0), 1.0)
                     }
             )
+        }
+    }
+}
+
+extension View {
+    @ViewBuilder func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
         }
     }
 }
