@@ -331,15 +331,27 @@ struct PlayerView: View {
             HStack(spacing: 20) {
                 ForEach(0..<6) { index in
                     VStack {
-                        VerticalSlider(value: binding(for: index)) { editing in
-                            isDraggingSlider = editing
-                            if !editing {
-                                resetControlTimer()
-                            } else {
-                                controlHideTimer?.invalidate()
-                            }
+                        if #available(iOS 16.0, *) {
+                           NativeVerticalSlider(value: binding(for: index)) { editing in
+                               isDraggingSlider = editing
+                               if !editing {
+                                   resetControlTimer()
+                               } else {
+                                   controlHideTimer?.invalidate()
+                               }
+                           }
+                           .frame(height: 120)
+                        } else {
+                           VerticalSlider(value: binding(for: index)) { editing in
+                               isDraggingSlider = editing
+                               if !editing {
+                                   resetControlTimer()
+                               } else {
+                                   controlHideTimer?.invalidate()
+                               }
+                           }
+                           .frame(height: 120)
                         }
-                        .frame(height: 120)
                         
                         Text(frequencies[index])
                             .font(.caption2)
@@ -465,6 +477,21 @@ struct VerticalSlider: View {
                         onEditingChanged(false)
                     }
             )
+        }
+    }
+}
+
+struct NativeVerticalSlider: View {
+    @Binding var value: Double // 0.0 to 1.0
+    var onEditingChanged: (Bool) -> Void
+
+    var body: some View {
+        GeometryReader { geo in
+            Slider(value: $value, in: 0...1, onEditingChanged: onEditingChanged)
+                .rotationEffect(.degrees(-90))
+                .frame(width: geo.size.height, height: geo.size.width)
+                .offset(x: -geo.size.height / 2 + geo.size.width / 2,
+                        y: geo.size.height / 2 - geo.size.width / 2)
         }
     }
 }
