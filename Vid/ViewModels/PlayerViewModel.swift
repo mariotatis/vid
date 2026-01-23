@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import AVKit
 import AVFoundation
 import Combine
@@ -45,6 +46,7 @@ class PlayerViewModel: ObservableObject {
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
             try AVAudioSession.sharedInstance().setActive(true)
+            UIApplication.shared.beginReceivingRemoteControlEvents()
         } catch {
             print("Failed to setup audio session: \(error)")
         }
@@ -322,6 +324,13 @@ class PlayerViewModel: ObservableObject {
         // Disable behavior that might interfere (like 15s skip)
         commandCenter.skipForwardCommand.isEnabled = false
         commandCenter.skipBackwardCommand.isEnabled = false
+        commandCenter.seekForwardCommand.isEnabled = false
+        commandCenter.seekBackwardCommand.isEnabled = false
+        
+        // Explicitly enable next/previous
+        commandCenter.nextTrackCommand.isEnabled = true
+        commandCenter.previousTrackCommand.isEnabled = true
+        
         commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in
             if let positionEvent = event as? MPChangePlaybackPositionCommandEvent {
                 self?.seek(to: positionEvent.positionTime)
@@ -336,7 +345,16 @@ class PlayerViewModel: ObservableObject {
         
         if let video = currentVideo {
             nowPlayingInfo[MPMediaItemPropertyTitle] = video.name
+            nowPlayingInfo[MPMediaItemPropertyArtist] = "Vid"
             nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
+            
+            // Add Artwork
+            if let image = ThumbnailCache.shared.thumbnail(for: video.url) {
+                let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in
+                    return image
+                }
+                nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
+            }
         }
         
         nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = currentTime

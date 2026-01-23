@@ -10,6 +10,7 @@ struct CustomVideoPlayer: UIViewControllerRepresentable {
         controller.player = player
         controller.showsPlaybackControls = false // Hide native controls
         controller.videoGravity = videoGravity
+        controller.updatesNowPlayingInfoCenter = false // Disable native Now Playing updates
         return controller
     }
     
