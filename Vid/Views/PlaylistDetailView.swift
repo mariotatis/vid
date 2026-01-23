@@ -12,7 +12,7 @@ struct PlaylistDetailView: View {
     @State private var sortAscending: Bool = true
     @State private var searchText = ""
     @State private var showSearch = false
-    @State private var showThumbnails = true
+    @State private var showThumbnails = false
 
     enum SortOption {
         case name, duration, recent
@@ -124,6 +124,12 @@ struct PlaylistDetailView: View {
 
                         Button(action: { showThumbnails.toggle() }) {
                             Label("Show Thumbnails", systemImage: showThumbnails ? "checkmark" : "")
+                        }
+
+                        Divider()
+
+                        Button(action: { settings.autoplayOnAppOpen.toggle() }) {
+                            Label("Autoplay on App Open", systemImage: settings.autoplayOnAppOpen ? "checkmark" : "")
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")

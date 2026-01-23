@@ -123,6 +123,7 @@ class PlayerViewModel: ObservableObject {
         }
         
         self.currentVideo = video
+        settings.lastVideoId = video.id
         startPlayback()
     }
     
@@ -228,14 +229,17 @@ class PlayerViewModel: ObservableObject {
     
     func playNext() {
         guard !queue.isEmpty else { return }
-        
+
         var nextIndex = currentIndex + 1
         if nextIndex >= queue.count {
             nextIndex = 0 // Loop
         }
-        
+
         currentIndex = nextIndex
         currentVideo = queue[currentIndex]
+        if let video = currentVideo {
+            SettingsStore.shared.lastVideoId = video.id
+        }
         startPlayback()
     }
     
@@ -244,16 +248,19 @@ class PlayerViewModel: ObservableObject {
             seek(to: 0)
             return
         }
-        
+
         guard !queue.isEmpty else { return }
-        
+
         var prevIndex = currentIndex - 1
         if prevIndex < 0 {
             prevIndex = queue.count - 1 // Loop back to end
         }
-        
+
         currentIndex = prevIndex
         currentVideo = queue[currentIndex]
+        if let video = currentVideo {
+            SettingsStore.shared.lastVideoId = video.id
+        }
         startPlayback()
     }
     

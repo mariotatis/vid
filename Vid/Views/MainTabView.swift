@@ -5,19 +5,22 @@ struct MainTabView: View {
     @StateObject var playlistManager = PlaylistManager.shared
     @StateObject var settingsStore = SettingsStore.shared
     @StateObject var playerVM = PlayerViewModel.shared
-    
+    @State private var selectedTab: Int = 0
+
     var body: some View {
         ZStack {
-            TabView {
+            TabView(selection: $selectedTab) {
                 AllVideosView(videoManager: videoManager, settings: settingsStore)
                     .tabItem {
                         Label("Library", systemImage: "play.rectangle.on.rectangle")
                     }
-                
+                    .tag(0)
+
                 PlaylistsView(playlistManager: playlistManager, videoManager: videoManager, settings: settingsStore)
                     .tabItem {
                         Label("Playlists", systemImage: "music.note.list")
                     }
+                    .tag(1)
             }
             .environmentObject(playerVM)
             
@@ -62,22 +65,33 @@ struct MainTabView: View {
     }
     
     private func autoPlayLastContext() {
-        guard settingsStore.lastContextType != "" else { return }
-        
+        guard settingsStore.autoplayOnAppOpen && settingsStore.lastContextType != "" else { return }
+
         // Use a small delay to ensure VideoManager and PlaylistManager have finished their initial local disk load
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            // Find the last played video
+            let lastVideo = videoManager.videos.first(where: { $0.id == settingsStore.lastVideoId })
+
             if settingsStore.lastContextType == "all" {
-                if let firstVideo = videoManager.videos.first {
-                    playerVM.play(video: firstVideo, from: videoManager.videos, settings: settingsStore)
+                selectedTab = 0
+                // Try to play the last video, fallback to first video if not found
+                let videoToPlay = lastVideo ?? videoManager.videos.first
+                if let video = videoToPlay {
+                    playerVM.play(video: video, from: videoManager.videos, settings: settingsStore)
                 }
             } else if settingsStore.lastContextType == "playlist",
                       let playlistId = UUID(uuidString: settingsStore.lastPlaylistId) {
+                selectedTab = 1
                 if let playlist = playlistManager.playlists.first(where: { $0.id == playlistId }) {
                     let resolvedVideos = playlist.videoIds.compactMap { id in
                         videoManager.videos.first(where: { $0.id == id })
                     }
-                    if let firstVideo = resolvedVideos.first {
-                        playerVM.play(video: firstVideo, from: resolvedVideos, settings: settingsStore)
+                    // Try to play the last video if it's in this playlist, otherwise play first video
+                    let videoToPlay = (lastVideo != nil && resolvedVideos.contains(where: { $0.id == lastVideo?.id }))
+                        ? lastVideo
+                        : resolvedVideos.first
+                    if let video = videoToPlay {
+                        playerVM.play(video: video, from: resolvedVideos, settings: settingsStore)
                     }
                 }
             }

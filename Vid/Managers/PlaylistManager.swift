@@ -69,7 +69,25 @@ class PlaylistManager: ObservableObject {
     private func loadPlaylists() {
         if let data = UserDefaults.standard.data(forKey: saveKey),
            let decoded = try? JSONDecoder().decode([Playlist].self, from: data) {
-            playlists = decoded
+            // Fixup video IDs: The sandbox container path changes on every launch.
+            // Video IDs are based on url.absoluteString which includes the full path.
+            // We need to rebuild video IDs based on the current Documents directory path.
+            if let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+                playlists = decoded.map { playlist in
+                    let updatedVideoIds = playlist.videoIds.map { oldId in
+                        // Extract filename from old URL
+                        if let oldURL = URL(string: oldId) {
+                            let fileName = oldURL.lastPathComponent
+                            let newURL = documents.appendingPathComponent(fileName)
+                            return newURL.absoluteString
+                        }
+                        return oldId
+                    }
+                    return Playlist(id: playlist.id, name: playlist.name, videoIds: updatedVideoIds)
+                }
+            } else {
+                playlists = decoded
+            }
         }
     }
 }

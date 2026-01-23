@@ -6,13 +6,14 @@ struct AllVideosView: View {
     @ObservedObject var videoManager: VideoManager
     @ObservedObject var settings: SettingsStore
     @EnvironmentObject var playerVM: PlayerViewModel
+    @ObservedObject var playlistManager = PlaylistManager.shared
     
     @State private var showFileImporter = false
     @State private var sortOption: SortOption = .name
     @State private var sortAscending: Bool = true
     @State private var searchText = ""
     @State private var showSearch = false
-    @State private var showThumbnails = true
+    @State private var showThumbnails = false
     @FocusState private var focusedElement: AppFocus?
 
     enum SortOption {
@@ -140,6 +141,12 @@ struct AllVideosView: View {
                             Button(action: { showThumbnails.toggle() }) {
                                 Label("Show Thumbnails", systemImage: showThumbnails ? "checkmark" : "")
                             }
+
+                            Divider()
+
+                            Button(action: { settings.autoplayOnAppOpen.toggle() }) {
+                                Label("Autoplay on App Open", systemImage: settings.autoplayOnAppOpen ? "checkmark" : "")
+                            }
                         } label: {
                             Image(systemName: "ellipsis.circle")
                                 .foregroundColor(Color.primary)
@@ -186,6 +193,11 @@ struct AllVideosView: View {
                 print("Successfully deleted file: \(video.url.lastPathComponent)")
             } catch {
                 print("Failed to delete file: \(error.localizedDescription)")
+            }
+
+            // Remove from all playlists
+            for playlist in playlistManager.playlists {
+                playlistManager.removeVideo(id: video.id, from: playlist.id)
             }
 
             // Remove from the in-memory array

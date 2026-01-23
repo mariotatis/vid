@@ -10,6 +10,8 @@ class SettingsStore: ObservableObject {
     @AppStorage("aspectRatioMode") var aspectRatioMode: AspectRatioMode = .fill
     @AppStorage("lastContextType") var lastContextType: String = "" // "all" or "playlist"
     @AppStorage("lastPlaylistId") var lastPlaylistId: String = ""
+    @AppStorage("lastVideoId") var lastVideoId: String = ""
+    @AppStorage("autoplayOnAppOpen") var autoplayOnAppOpen: Bool = false
     
     @Published var preampValue: Double = 0.5 {
         didSet {
