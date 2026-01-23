@@ -6,7 +6,8 @@ struct Video: Identifiable, Codable, Equatable, Hashable {
     let name: String
     let url: URL
     let duration: TimeInterval
-    
+    let dateAdded: Date
+
     var durationFormatted: String {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.minute, .second]

@@ -37,11 +37,11 @@ struct PlayerView: View {
     @State private var controlHideTimer: Timer?
     @State private var isDraggingSlider = false
     @FocusState private var focusedElement: AppFocus?
-    
+
     // 6 Bands frequencies
     let frequencies: [String] = ["60Hz", "150Hz", "400Hz", "1kHz", "2.4kHz", "15kHz"]
-    
-    @State private var toastMessage: String?
+
+    @State private var centerToastMessage: String?
 
     var body: some View {
         ZStack {
@@ -81,18 +81,19 @@ struct PlayerView: View {
                             if !(showEQ && isLandscape) {
                                 VStack(alignment: .leading, spacing: 12) {
                                     // Icons Bar
-                                    HStack(spacing: 12) {
+                                    HStack(spacing: 2) {
                                         Button(action: {
                                             settings.isShuffleOn.toggle()
                                             playerVM.updateShuffleState(isOn: settings.isShuffleOn)
+                                            showCenterToast(settings.isShuffleOn ? "Shuffle On" : "Shuffle Off")
                                         }) {
-                                            Image(systemName: settings.isShuffleOn ? "shuffle.circle.fill" : "shuffle.circle")
+                                            Image(systemName: "shuffle")
                                                 .font(.system(size: 22))
                                                 .padding(6)
                                                 .background(Color.white.opacity(0.001))
                                         }
                                         .buttonStyle(VidButtonStyle())
-                                        .foregroundColor(settings.isShuffleOn ? .blue : .white)
+                                        .foregroundColor(settings.isShuffleOn ? .white : Color.white.opacity(0.4))
                                         .focused($focusedElement, equals: .playerShuffle)
                                         
                                         Button(action: {
@@ -108,32 +109,18 @@ struct PlayerView: View {
                                         .foregroundColor(showEQ ? .blue : .white)
                                         .focused($focusedElement, equals: .playerEQ)
                                         
-                                        HStack(spacing: 4) {
-                                            Button(action: {
-                                                cycleAspectRatio()
-                                                resetControlTimer()
-                                            }) {
-                                                Image(systemName: "aspectratio")
-                                                    .font(.system(size: 22))
-                                                    .padding(6)
-                                                    .background(Color.white.opacity(0.001))
-                                            }
-                                            .buttonStyle(VidButtonStyle())
-                                            .foregroundColor(.white)
-                                            .focused($focusedElement, equals: .playerRatio)
-                                            
-                                            // Small Toast for Ratio
-                                            if let message = toastMessage {
-                                                Text(message)
-                                                    .font(.system(size: 10, weight: .bold))
-                                                    .foregroundColor(.white)
-                                                    .padding(.horizontal, 6)
-                                                    .padding(.vertical, 4)
-                                                    .background(Color.black.opacity(0.6))
-                                                    .cornerRadius(6)
-                                                    .transition(.scale.combined(with: .opacity))
-                                            }
+                                        Button(action: {
+                                            cycleAspectRatio()
+                                            resetControlTimer()
+                                        }) {
+                                            Image(systemName: "aspectratio")
+                                                .font(.system(size: 22))
+                                                .padding(6)
+                                                .background(Color.white.opacity(0.001))
                                         }
+                                        .buttonStyle(VidButtonStyle())
+                                        .foregroundColor(.white)
+                                        .focused($focusedElement, equals: .playerRatio)
                                         
                                         Spacer()
                                         
@@ -153,7 +140,7 @@ struct PlayerView: View {
                                     // Video Name
                                     if let videoName = playerVM.currentVideo?.name {
                                         Text(videoName)
-                                            .font(.system(size: 14, weight: .semibold))
+                                            .font(.system(size: 16, weight: .semibold))
                                             .foregroundColor(.white.opacity(0.9))
                                             .lineLimit(1)
                                             .padding(.horizontal, 8)
@@ -170,7 +157,7 @@ struct PlayerView: View {
                                     .transition(.move(edge: .bottom).combined(with: .opacity))
                             } else {
                                 // Playback Controls
-                                HStack(spacing: 20) {
+                                HStack(spacing: 6) {
                                     Button(action: {
                                         resetControlTimer()
                                         playerVM.playPrevious()
@@ -220,26 +207,33 @@ struct PlayerView: View {
                                         .foregroundColor(.white)
                                         .font(.caption)
                                         .monospacedDigit()
-                                    
-                                    Slider(value: Binding(get: {
-                                        playerVM.currentTime
-                                    }, set: { newValue in
-                                        playerVM.isSeeking = true
-                                        playerVM.currentTime = newValue
-                                    }), in: 0...max(playerVM.duration, 1)) { editing in
-                                         isDraggingSlider = editing
-                                         if !editing {
-                                             playerVM.seek(to: playerVM.currentTime)
-                                             playerVM.isSeeking = false
-                                             resetControlTimer()
-                                         } else {
-                                             controlHideTimer?.invalidate()
-                                         }
+
+                                    ZStack {
+                                        // Background track
+                                        RoundedRectangle(cornerRadius: 2)
+                                            .fill(Color.gray.opacity(0.6))
+                                            .frame(height: 4)
+
+                                        Slider(value: Binding(get: {
+                                            playerVM.currentTime
+                                        }, set: { newValue in
+                                            playerVM.isSeeking = true
+                                            playerVM.currentTime = newValue
+                                        }), in: 0...max(playerVM.duration, 1)) { editing in
+                                             isDraggingSlider = editing
+                                             if !editing {
+                                                 playerVM.seek(to: playerVM.currentTime)
+                                                 playerVM.isSeeking = false
+                                                 resetControlTimer()
+                                             } else {
+                                                 controlHideTimer?.invalidate()
+                                             }
+                                        }
+                                        .accentColor(.white)
                                     }
-                                    .accentColor(.white)
                                     .vidFocusHighlight()
                                     .focused($focusedElement, equals: .playerSlider)
-                                    
+
                                     Text(formatTime(playerVM.duration))
                                         .foregroundColor(.white)
                                         .font(.caption)
@@ -258,6 +252,24 @@ struct PlayerView: View {
                         showEQ = false
                         controlHideTimer?.invalidate()
                     }
+                }
+            }
+
+            // Center Toast Overlay (for aspect ratio and shuffle)
+            if let message = centerToastMessage {
+                VStack {
+                    Spacer()
+                    Text(message)
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color.black.opacity(0.001))
+                        .shadow(color: .black.opacity(0.7), radius: 8, x: 0, y: 0)
+                        .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 0)
+                        .transition(.scale.combined(with: .opacity))
+                    Spacer()
+                        .frame(height: 180)
                 }
             }
         }
@@ -289,20 +301,28 @@ struct PlayerView: View {
                     let db = (settings.preampValue - 0.5) * 30
                     Text(String(format: "%+.1f dB", db))
                         .font(.caption.monospacedDigit())
-                        .foregroundColor(.blue)
+                        .foregroundColor(.white)
                 }
                 .padding(.horizontal)
                 
-                Slider(value: $settings.preampValue, in: 0...1) { editing in
-                    isDraggingSlider = editing
-                    if !editing {
-                        resetControlTimer()
-                    } else {
-                        controlHideTimer?.invalidate()
+                ZStack {
+                    // Background track
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.gray.opacity(0.6))
+                        .frame(height: 4)
+                        .padding(.horizontal)
+
+                    Slider(value: $settings.preampValue, in: 0...1) { editing in
+                        isDraggingSlider = editing
+                        if !editing {
+                            resetControlTimer()
+                        } else {
+                            controlHideTimer?.invalidate()
+                        }
                     }
+                    .accentColor(.white)
+                    .padding(.horizontal)
                 }
-                .accentColor(.blue)
-                .padding(.horizontal)
                 .vidFocusHighlight()
                 .focused($focusedElement, equals: .eqPreamp)
             }
@@ -386,15 +406,19 @@ struct PlayerView: View {
         if let idx = all.firstIndex(of: settings.aspectRatioMode) {
             let nextIdx = (idx + 1) % all.count
             settings.aspectRatioMode = all[nextIdx]
-            showToast(settings.aspectRatioMode.rawValue)
+            showCenterToast(settings.aspectRatioMode.rawValue)
         }
     }
-    
-    private func showToast(_ message: String) {
-        toastMessage = message
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            if toastMessage == message {
-                withAnimation { toastMessage = nil }
+
+    private func showCenterToast(_ message: String) {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            centerToastMessage = message
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            if centerToastMessage == message {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    centerToastMessage = nil
+                }
             }
         }
     }
@@ -409,12 +433,12 @@ struct VerticalSlider: View {
             ZStack(alignment: .bottom) {
                 // Background Track
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.gray.opacity(0.5))
+                    .fill(Color.gray.opacity(0.4))
                     .frame(width: 6)
                 
                 // Fill Track
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.blue)
+                    .fill(Color.white)
                     .frame(width: 6, height: CGFloat(value) * geo.size.height)
                 
                 // Thumb

@@ -11,10 +11,12 @@ struct AllVideosView: View {
     @State private var sortOption: SortOption = .name
     @State private var sortAscending: Bool = true
     @State private var searchText = ""
+    @State private var showSearch = false
+    @State private var showThumbnails = true
     @FocusState private var focusedElement: AppFocus?
-    
+
     enum SortOption {
-        case name, duration
+        case name, duration, recent
     }
     
     var filteredVideos: [Video] {
@@ -36,6 +38,8 @@ struct AllVideosView: View {
                 return sortAscending ? v1.name < v2.name : v1.name > v2.name
             case .duration:
                 return sortAscending ? v1.duration < v2.duration : v1.duration > v2.duration
+            case .recent:
+                return sortAscending ? v1.dateAdded < v2.dateAdded : v1.dateAdded > v2.dateAdded
             }
         }
     }
@@ -52,59 +56,97 @@ struct AllVideosView: View {
                             .foregroundColor(.secondary)
                     }
                 } else {
-                    VideoListView(videos: sortedVideos, focusedElement: $focusedElement, onDelete: { offsets in deleteVideo(at: offsets) }, onPlay: { video in
+                    VideoListView(videos: sortedVideos, showThumbnails: showThumbnails, focusedElement: $focusedElement, onDelete: { offsets in deleteVideo(at: offsets) }, onPlay: { video in
                         settings.lastContextType = "all"
                         settings.lastPlaylistId = ""
                         playerVM.play(video: video, from: sortedVideos, settings: settings)
                     })
                 }
             }
-            .navigationTitle("All Videos")
-            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search videos")
+            .navigationTitle("Library")
+            .if(showSearch) { view in
+                view.searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search videos")
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    HStack(spacing: 12) {
+                    HStack(spacing: 8) {
                         Button(action: {
                             print("Vid: Plus button tapped")
                             showFileImporter = true
                         }) {
                             Image(systemName: "plus")
-                                .foregroundColor(.white)
+                                .foregroundColor(Color.primary)
                         }
                         .buttonStyle(VidButtonStyle())
-                        .focused($focusedElement, equals: .search) // Grouping under search for simplicity or define .plus
-                        
+                        .focused($focusedElement, equals: .search)
+
                         Button(action: {
                             Task {
                                 await videoManager.loadVideosAsync()
                             }
                         }) {
                             Image(systemName: "arrow.clockwise")
-                                .foregroundColor(.white)
+                                .foregroundColor(Color.primary)
                         }
                         .buttonStyle(VidButtonStyle())
-                        .focused($focusedElement, equals: .filter) // Simplified mapping
+                        .focused($focusedElement, equals: .filter)
                     }
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Picker("Sort By", selection: $sortOption) {
-                            Text("Name").tag(SortOption.name)
-                            Text("Duration").tag(SortOption.duration)
+                    HStack(spacing: 8) {
+                        Button(action: {
+                            withAnimation {
+                                showSearch.toggle()
+                                if !showSearch {
+                                    searchText = ""
+                                }
+                            }
+                        }) {
+                            Image(systemName: showSearch ? "xmark" : "magnifyingglass")
+                                .foregroundColor(Color.primary)
                         }
-                        
-                        Divider()
-                        
-                        Button(action: { sortAscending.toggle() }) {
-                            Label(sortAscending ? "Ascending" : "Descending", systemImage: sortAscending ? "arrow.up" : "arrow.down")
+                        .buttonStyle(VidButtonStyle())
+
+                        Menu {
+                            Section {
+                                Button(action: {
+                                    sortOption = .name
+                                }) {
+                                    Label("Name", systemImage: sortOption == .name ? "checkmark" : "")
+                                }
+
+                                Button(action: {
+                                    sortOption = .duration
+                                }) {
+                                    Label("Duration", systemImage: sortOption == .duration ? "checkmark" : "")
+                                }
+
+                                Button(action: {
+                                    sortOption = .recent
+                                }) {
+                                    Label("Recent", systemImage: sortOption == .recent ? "checkmark" : "")
+                                }
+                            }
+
+                            Divider()
+
+                            Button(action: { sortAscending.toggle() }) {
+                                Label(sortAscending ? "Ascending" : "Descending", systemImage: sortAscending ? "arrow.up" : "arrow.down")
+                            }
+
+                            Divider()
+
+                            Button(action: { showThumbnails.toggle() }) {
+                                Label("Show Thumbnails", systemImage: showThumbnails ? "checkmark" : "")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .foregroundColor(Color.primary)
+                                .vidFocusHighlight()
                         }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .foregroundColor(.white)
-                            .vidFocusHighlight()
+                        .focused($focusedElement, equals: .sort)
                     }
-                    .focused($focusedElement, equals: .sort)
                 }
             }
 
@@ -134,23 +176,25 @@ struct AllVideosView: View {
     }
     
     func deleteVideo(at offsets: IndexSet) {
-        // Since we are displaying a sorted list, we need to find the actual items to delete.
-        // But for simplicity in this file-based app, we aren't deleting files from disk usually, just from the list?
-        // User said: "I can swipe left to remove a video". Usually implies removing from the list.
-        // But if it's "All Videos" reflecting a folder, deleting from list implies checking if we should delete file.
-        // Use safest approach: Just remove from the in-memory array for now, or ask user?
-        // Let's assume removing from the VIEW, but since it's "All" which reflects a folder, maybe we shouldn't delete files.
-        // Re-reading requirements: "All will list all videos... I can swipe left to remove a video".
-        // I'll implement removing from the `videoManager.videos` array. It will reappear on reload if file exists.
-        // Actually, to make it persist removal without deleting file, we'd need a blacklist.
-        // For now, I will just remove from the `videoManager` array in memory.
-        
-        // Wait, because we are sorting, we map offsets to IDs first.
+        // Map offsets to actual videos first (since we're working with a sorted list)
         let videosToRemove = offsets.map { sortedVideos[$0] }
+
         for video in videosToRemove {
+            // Delete the file from disk
+            do {
+                try FileManager.default.removeItem(at: video.url)
+                print("Successfully deleted file: \(video.url.lastPathComponent)")
+            } catch {
+                print("Failed to delete file: \(error.localizedDescription)")
+            }
+
+            // Remove from the in-memory array
             if let index = videoManager.videos.firstIndex(of: video) {
                 videoManager.videos.remove(at: index)
             }
         }
+
+        // Save updated videos list to disk
+        videoManager.saveVideosToDisk()
     }
 }

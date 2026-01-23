@@ -10,11 +10,20 @@ struct AddVideosToPlaylistView: View {
     @State private var selectedVideoIds: Set<String> = []
     @FocusState private var focusedElement: AppFocus?
     
+    var currentPlaylist: Playlist? {
+        playlistManager.playlists.first(where: { $0.id == playlistId })
+    }
+
+    var availableVideos: [Video] {
+        guard let playlist = currentPlaylist else { return videoManager.videos }
+        return videoManager.videos.filter { !playlist.videoIds.contains($0.id) }
+    }
+
     var filteredVideos: [Video] {
         if searchText.isEmpty {
-            return videoManager.videos
+            return availableVideos
         } else {
-            return videoManager.videos.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+            return availableVideos.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
         }
     }
     

@@ -11,7 +11,7 @@ struct MainTabView: View {
             TabView {
                 AllVideosView(videoManager: videoManager, settings: settingsStore)
                     .tabItem {
-                        Label("All", systemImage: "play.rectangle.on.rectangle")
+                        Label("Library", systemImage: "play.rectangle.on.rectangle")
                     }
                 
                 PlaylistsView(playlistManager: playlistManager, videoManager: videoManager, settings: settingsStore)

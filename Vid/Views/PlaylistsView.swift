@@ -33,7 +33,7 @@ struct PlaylistsView: View {
                         showCreatePlaylist = true
                     }) {
                         Image(systemName: "plus")
-                            .foregroundColor(.white)
+                            .foregroundColor(Color.primary)
                     }
                     .buttonStyle(VidButtonStyle())
                     .focused($focusedElement, equals: .search) // Reusing search context for top-bar plus

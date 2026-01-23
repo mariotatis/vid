@@ -46,7 +46,7 @@ class VideoManager: ObservableObject {
         }
     }
     
-    private func saveVideosToDisk() {
+    func saveVideosToDisk() {
         guard let url = persistenceURL else { return }
         do {
             let data = try JSONEncoder().encode(videos)
@@ -69,7 +69,7 @@ class VideoManager: ObservableObject {
                 self.videos = loaded.map { video in
                     let fileName = video.url.lastPathComponent
                     let newURL = documents.appendingPathComponent(fileName)
-                    return Video(name: video.name, url: newURL, duration: video.duration)
+                    return Video(name: video.name, url: newURL, duration: video.duration, dateAdded: video.dateAdded)
                 }
             } else {
                 self.videos = loaded
@@ -146,7 +146,12 @@ class VideoManager: ObservableObject {
                 let duration = CMTimeGetSeconds(durationTime)
                 // Important: We need a stable ID logic if we want playlists to survive reloads.
                 // But for now, we follow the existing pattern, just fixing the reload behavior.
-                let video = Video(name: url.deletingPathExtension().lastPathComponent, url: url, duration: duration)
+
+                // Check if this video already exists to preserve its dateAdded
+                let existingVideo = self.videos.first(where: { $0.url.lastPathComponent == url.lastPathComponent })
+                let dateAdded = existingVideo?.dateAdded ?? Date()
+
+                let video = Video(name: url.deletingPathExtension().lastPathComponent, url: url, duration: duration, dateAdded: dateAdded)
                 loadedVideos.append(video)
             }
             

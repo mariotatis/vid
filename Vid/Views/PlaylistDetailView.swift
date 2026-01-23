@@ -7,18 +7,53 @@ struct PlaylistDetailView: View {
     @EnvironmentObject var playerVM: PlayerViewModel
     @ObservedObject var settings: SettingsStore
     @FocusState private var focusedElement: AppFocus?
-    
+
+    @State private var sortOption: SortOption = .name
+    @State private var sortAscending: Bool = true
+    @State private var searchText = ""
+    @State private var showSearch = false
+    @State private var showThumbnails = true
+
+    enum SortOption {
+        case name, duration, recent
+    }
+
     // We need to resolve videoIds to Video objects.
     // Since Playlist is a Struct (value type), and we want to know when it updates (though the list passed in is static value).
     // We rely on `playlistManager` updates. We need to find the current playlist in the manager.
-    
+
     var livePlaylist: Playlist {
         playlistManager.playlists.first(where: { $0.id == playlist.id }) ?? playlist
     }
-    
+
     var resolvedVideos: [Video] {
         livePlaylist.videoIds.compactMap { id in
             videoManager.videos.first(where: { $0.id == id })
+        }
+    }
+
+    var filteredVideos: [Video] {
+        if searchText.isEmpty {
+            return resolvedVideos
+        } else {
+            return resolvedVideos.filter { video in
+                let name = video.name.folding(options: .diacriticInsensitive, locale: .current)
+                let query = searchText.folding(options: .diacriticInsensitive, locale: .current)
+                return name.localizedCaseInsensitiveContains(query)
+            }
+        }
+    }
+
+    var sortedVideos: [Video] {
+        return filteredVideos.sorted { v1, v2 in
+            switch sortOption {
+            case .name:
+                return sortAscending ? v1.name < v2.name : v1.name > v2.name
+            case .duration:
+                return sortAscending ? v1.duration < v2.duration : v1.duration > v2.duration
+            case .recent:
+                return sortAscending ? v1.dateAdded < v2.dateAdded : v1.dateAdded > v2.dateAdded
+            }
         }
     }
     
@@ -31,28 +66,85 @@ struct PlaylistDetailView: View {
                         .foregroundColor(.secondary)
                 }
             } else {
-                VideoListView(videos: resolvedVideos, focusedElement: $focusedElement, onDelete: { offsets in deleteVideo(at: offsets) }, onPlay: { video in
+                VideoListView(videos: sortedVideos, showThumbnails: showThumbnails, focusedElement: $focusedElement, onDelete: { offsets in deleteVideo(at: offsets) }, onPlay: { video in
                     settings.lastContextType = "playlist"
                     settings.lastPlaylistId = playlist.id.uuidString
-                    playerVM.play(video: video, from: resolvedVideos, settings: settings)
+                    playerVM.play(video: video, from: sortedVideos, settings: settings)
                 })
             }
         }
         .navigationTitle(livePlaylist.name)
+        .if(showSearch) { view in
+            view.searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search videos")
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                NavigationLink(destination: AddVideosToPlaylistView(playlistId: playlist.id, videoManager: videoManager, playlistManager: playlistManager)) {
-                    Image(systemName: "plus")
-                        .foregroundColor(.white)
-                        .vidFocusHighlight()
+                HStack(spacing: 8) {
+                    Button(action: {
+                        withAnimation {
+                            showSearch.toggle()
+                            if !showSearch {
+                                searchText = ""
+                            }
+                        }
+                    }) {
+                        Image(systemName: showSearch ? "xmark" : "magnifyingglass")
+                            .foregroundColor(Color.primary)
+                    }
+                    .buttonStyle(VidButtonStyle())
+
+                    Menu {
+                        Section {
+                            Button(action: {
+                                sortOption = .name
+                            }) {
+                                Label("Name", systemImage: sortOption == .name ? "checkmark" : "")
+                            }
+
+                            Button(action: {
+                                sortOption = .duration
+                            }) {
+                                Label("Duration", systemImage: sortOption == .duration ? "checkmark" : "")
+                            }
+
+                            Button(action: {
+                                sortOption = .recent
+                            }) {
+                                Label("Recent", systemImage: sortOption == .recent ? "checkmark" : "")
+                            }
+                        }
+
+                        Divider()
+
+                        Button(action: { sortAscending.toggle() }) {
+                            Label(sortAscending ? "Ascending" : "Descending", systemImage: sortAscending ? "arrow.up" : "arrow.down")
+                        }
+
+                        Divider()
+
+                        Button(action: { showThumbnails.toggle() }) {
+                            Label("Show Thumbnails", systemImage: showThumbnails ? "checkmark" : "")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .foregroundColor(Color.primary)
+                            .vidFocusHighlight()
+                    }
+                    .focused($focusedElement, equals: .sort)
+
+                    NavigationLink(destination: AddVideosToPlaylistView(playlistId: playlist.id, videoManager: videoManager, playlistManager: playlistManager)) {
+                        Image(systemName: "plus")
+                            .foregroundColor(Color.primary)
+                            .vidFocusHighlight()
+                    }
+                    .buttonStyle(VidButtonStyle())
+                    .focused($focusedElement, equals: .search)
                 }
-                .buttonStyle(VidButtonStyle())
-                .focused($focusedElement, equals: .search)
             }
         }
         .onAppear {
             if focusedElement == nil {
-                if let firstId = resolvedVideos.first?.id {
+                if let firstId = sortedVideos.first?.id {
                     focusedElement = .videoItem(firstId)
                 }
             }
@@ -60,7 +152,7 @@ struct PlaylistDetailView: View {
     }
     
     func deleteVideo(at offsets: IndexSet) {
-        let idsToRemove = offsets.map { resolvedVideos[$0].id }
+        let idsToRemove = offsets.map { sortedVideos[$0].id }
         for id in idsToRemove {
             playlistManager.removeVideo(id: id, from: playlist.id)
         }
