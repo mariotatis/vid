@@ -58,7 +58,7 @@ struct PlayerView: View {
                     }
                     .frame(width: geometry.size.width, height: geometry.size.height)
                     .onTapGesture {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        withAnimation(.easeOut(duration: 0.15)) {
                             if showControls {
                                 showControls = false
                                 controlHideTimer?.invalidate()
@@ -247,7 +247,7 @@ struct PlayerView: View {
                 .background(Color.black.opacity(showEQ ? 0.6 : 0.3))
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.easeOut(duration: 0.15)) {
                         showControls = false
                         showEQ = false
                         controlHideTimer?.invalidate()
@@ -362,6 +362,9 @@ struct PlayerView: View {
         .background(Color.black.opacity(0.7))
         .cornerRadius(20)
         .padding()
+        .onTapGesture {
+            // Swallows taps to prevent closing the EQ when tapping on the background
+        }
     }
     
     private func binding(for index: Int) -> Binding<Double> {
