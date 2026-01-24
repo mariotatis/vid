@@ -18,7 +18,9 @@ struct PlaylistsView: View {
     var body: some View {
         NavigationView {
             Group {
-                if viewStyle == .list {
+                if playlistManager.playlists.isEmpty {
+                    emptyStateView
+                } else if viewStyle == .list {
                     playlistListView
                 } else {
                     playlistPreviewGrid
@@ -111,6 +113,66 @@ struct PlaylistsView: View {
             }
             .padding()
         }
+    }
+
+    private var emptyStateView: some View {
+        VStack(spacing: 24) {
+            // Icon with shadow
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.gray.opacity(0.15))
+                .frame(width: 120, height: 120)
+                .overlay(
+                    VStack(spacing: 4) {
+                        Image(systemName: "play.rectangle.fill")
+                            .font(.system(size: 40, weight: .medium))
+                            .foregroundColor(Color.gray.opacity(0.6))
+                        HStack(spacing: 4) {
+                            ForEach(0..<3) { _ in
+                                Circle()
+                                    .fill(Color.gray.opacity(0.4))
+                                    .frame(width: 6, height: 6)
+                            }
+                        }
+                    }
+                )
+                .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
+                .padding(.bottom, 8)
+
+            // Text content
+            VStack(spacing: 12) {
+                Text("No playlists yet")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+
+                Text("Create playlists to organize your videos by mood, genre, or any way you like.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
+
+            // Action button
+            Button(action: {
+                newPlaylistName = ""
+                showCreatePlaylist = true
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("Create Playlist")
+                        .font(.headline)
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 14)
+                .background(Color(white: 0.25))
+                .cornerRadius(12)
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 8)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

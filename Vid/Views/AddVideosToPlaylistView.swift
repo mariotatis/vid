@@ -54,75 +54,124 @@ struct AddVideosToPlaylistView: View {
     var body: some View {
         NavigationView {
             ZStack(alignment: .bottom) {
-                List {
-                    ForEach(sortedVideos) { video in
-                        Button(action: {
-                            toggleSelection(video)
-                        }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: selectedVideoIds.contains(video.id) ? "checkmark.circle.fill" : "circle")
-                                    .foregroundColor(selectedVideoIds.contains(video.id) ? .blue : .gray)
-                                    .font(.system(size: 22))
+                if availableVideos.isEmpty {
+                    // Empty state
+                    VStack(spacing: 24) {
+                        // Icon with shadow
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Color.gray.opacity(0.15))
+                            .frame(width: 120, height: 120)
+                            .overlay(
+                                Image(systemName: videoManager.videos.isEmpty ? "film.stack" : "checkmark.circle")
+                                    .font(.system(size: 44, weight: .medium))
+                                    .foregroundColor(Color.gray.opacity(0.6))
+                            )
+                            .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
+                            .padding(.bottom, 8)
 
-                                VStack(alignment: .leading) {
-                                    Text(video.name)
-                                        .font(.subheadline)
-                                        .lineLimit(1)
-                                        .foregroundColor(.primary)
-                                    Text(video.durationFormatted)
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                }
-                                Spacer()
-                            }
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 8)
-                            .background(focusedElement == .videoItem(video.id) ? Color.blue.opacity(0.15) : Color.clear)
-                            .cornerRadius(8)
-                            .vidFocusHighlight()
+                        // Text content
+                        VStack(spacing: 12) {
+                            Text(videoManager.videos.isEmpty ? "No videos in library" : "All videos added")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+
+                            Text(videoManager.videos.isEmpty
+                                ? "Import videos to your library first, then add them to this playlist."
+                                : "All your videos are already in this playlist.")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 40)
+                        }
+
+                        // Close button
+                        Button(action: {
+                            dismiss()
+                        }) {
+                            Text("Done")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 14)
+                                .background(Color(white: 0.25))
+                                .cornerRadius(12)
                         }
                         .buttonStyle(.plain)
-                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-                        .listRowSeparatorTint(Color.gray.opacity(0.3))
-                        .focused($focusedElement, equals: .videoItem(video.id))
+                        .padding(.top, 8)
                     }
-                }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List {
+                        ForEach(sortedVideos) { video in
+                            Button(action: {
+                                toggleSelection(video)
+                            }) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: selectedVideoIds.contains(video.id) ? "checkmark.circle.fill" : "circle")
+                                        .foregroundColor(selectedVideoIds.contains(video.id) ? .blue : .gray)
+                                        .font(.system(size: 22))
+
+                                    VStack(alignment: .leading) {
+                                        Text(video.name)
+                                            .font(.subheadline)
+                                            .lineLimit(1)
+                                            .foregroundColor(.primary)
+                                        Text(video.durationFormatted)
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                }
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 8)
+                                .background(focusedElement == .videoItem(video.id) ? Color.blue.opacity(0.15) : Color.clear)
+                                .cornerRadius(8)
+                                .vidFocusHighlight()
+                            }
+                            .buttonStyle(.plain)
+                            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                            .listRowSeparatorTint(Color.gray.opacity(0.3))
+                            .focused($focusedElement, equals: .videoItem(video.id))
+                        }
+                    }
                 .listStyle(.plain)
                 .safeAreaInset(edge: .bottom) {
                     Color.clear.frame(height: 100)
                 }
 
-                // Fixed bottom card
-                VStack(spacing: 0) {
-                    Divider()
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Selected")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            Text("\(selectedVideoIds.count) Videos")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                        }
+                    // Fixed bottom card
+                    VStack(spacing: 0) {
+                        Divider()
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Selected")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                Text("\(selectedVideoIds.count) Videos")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                            }
 
-                        Spacer()
+                            Spacer()
 
-                        Button(action: save) {
-                            Text("Add to Playlist")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 12)
-                                .background(selectedVideoIds.isEmpty ? Color.gray : Color.blue)
-                                .cornerRadius(10)
+                            Button(action: save) {
+                                Text("Add to Playlist")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 12)
+                                    .background(selectedVideoIds.isEmpty ? Color.gray : Color.blue)
+                                    .cornerRadius(10)
+                            }
+                            .disabled(selectedVideoIds.isEmpty)
                         }
-                        .disabled(selectedVideoIds.isEmpty)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
+                        .background(.ultraThinMaterial)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 16)
-                    .background(.ultraThinMaterial)
-                }
-            }
+                } // else
+            } // ZStack
             .navigationTitle("Add Videos")
             .navigationBarTitleDisplayMode(.inline)
             .if(showSearch) { view in

@@ -30,18 +30,20 @@ enum AppFocus: Hashable {
 /// supporting both touch and rotary knob/game controller input.
 struct VidButtonStyle: ButtonStyle {
     @Environment(\.isFocused) var isFocused: Bool
-    
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .padding(8)
-            .background(isFocused ? Color.blue : Color.black.opacity(0.001)) // Subtle hit-area, no visible bg
+            .background(
+                configuration.isPressed ? Color.gray.opacity(0.3) :
+                (isFocused ? Color.blue : Color.black.opacity(0.001))
+            )
             .scaleEffect(isFocused ? 1.1 : 1.0)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(Color.white, lineWidth: isFocused ? 2 : 0)
             )
-            .opacity(configuration.isPressed ? 0.7 : 1.0)
             .animation(.easeInOut(duration: 0.2), value: isFocused)
     }
 }

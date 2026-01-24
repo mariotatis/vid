@@ -52,11 +52,66 @@ struct AllVideosView: View {
                 if videoManager.isLoading {
                     ProgressView("Loading videos...")
                 } else if videoManager.videos.isEmpty {
-                    VStack {
-                        Text("No videos found.")
-                        Text("Add videos to the 'Vid' folder in Files app.")
-                            .foregroundColor(.secondary)
+                    VStack(spacing: 24) {
+                        // Icon with shadow
+                        ZStack(alignment: .bottomTrailing) {
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(Color.gray.opacity(0.15))
+                                .frame(width: 120, height: 120)
+                                .overlay(
+                                    Image(systemName: "film.stack")
+                                        .font(.system(size: 48, weight: .medium))
+                                        .foregroundColor(Color.gray.opacity(0.6))
+                                )
+                                .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
+
+                            // Plus badge
+                            Circle()
+                                .fill(Color(UIColor.systemBackground))
+                                .frame(width: 44, height: 44)
+                                .overlay(
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 32))
+                                        .foregroundColor(Color.gray.opacity(0.7))
+                                )
+                                .offset(x: 8, y: 8)
+                        }
+                        .padding(.bottom, 8)
+
+                        // Text content
+                        VStack(spacing: 12) {
+                            Text("Your library is quiet")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+
+                            Text("Import your favorite movies and clips to watch them offline anytime, anywhere.")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 40)
+                        }
+
+                        // Action button
+                        Button(action: {
+                            showFileImporter = true
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "arrow.down.circle")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text("Import Videos")
+                                    .font(.headline)
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 14)
+                            .background(Color(white: 0.25))
+                            .cornerRadius(12)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 8)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     VideoListView(videos: sortedVideos, showThumbnails: showThumbnails, focusedElement: $focusedElement, onDelete: { offsets in deleteVideo(at: offsets) }, onPlay: { video in
                         settings.lastContextType = "all"

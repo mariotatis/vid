@@ -61,11 +61,53 @@ struct PlaylistDetailView: View {
     var body: some View {
         Group {
             if resolvedVideos.isEmpty {
-                VStack {
-                    Text("No videos in this playlist.")
-                    Text("Tap + to add videos.")
-                        .foregroundColor(.secondary)
+                VStack(spacing: 24) {
+                    // Icon with shadow
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color.gray.opacity(0.15))
+                        .frame(width: 120, height: 120)
+                        .overlay(
+                            Image(systemName: "text.badge.plus")
+                                .font(.system(size: 44, weight: .medium))
+                                .foregroundColor(Color.gray.opacity(0.6))
+                        )
+                        .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
+                        .padding(.bottom, 8)
+
+                    // Text content
+                    VStack(spacing: 12) {
+                        Text("This playlist is empty")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+
+                        Text("Add videos from your library to start building this playlist.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                    }
+
+                    // Action button
+                    Button(action: {
+                        showAddVideos = true
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "plus.circle")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("Add Videos")
+                                .font(.headline)
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 14)
+                        .background(Color(white: 0.25))
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 8)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 VideoListView(videos: sortedVideos, showThumbnails: showThumbnails, focusedElement: $focusedElement, onDelete: { offsets in deleteVideo(at: offsets) }, onPlay: { video in
                     settings.lastContextType = "playlist"
