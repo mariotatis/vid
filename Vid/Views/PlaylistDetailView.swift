@@ -13,6 +13,7 @@ struct PlaylistDetailView: View {
     @State private var searchText = ""
     @State private var showSearch = false
     @State private var showThumbnails = false
+    @State private var showAddVideos = false
 
     enum SortOption {
         case name, duration, recent
@@ -138,7 +139,9 @@ struct PlaylistDetailView: View {
                     }
                     .focused($focusedElement, equals: .sort)
 
-                    NavigationLink(destination: AddVideosToPlaylistView(playlistId: playlist.id, videoManager: videoManager, playlistManager: playlistManager)) {
+                    Button(action: {
+                        showAddVideos = true
+                    }) {
                         Image(systemName: "plus")
                             .foregroundColor(Color.primary)
                             .vidFocusHighlight()
@@ -147,6 +150,9 @@ struct PlaylistDetailView: View {
                     .focused($focusedElement, equals: .search)
                 }
             }
+        }
+        .fullScreenCover(isPresented: $showAddVideos) {
+            AddVideosToPlaylistView(playlistId: playlist.id, videoManager: videoManager, playlistManager: playlistManager)
         }
         .onAppear {
             if focusedElement == nil {

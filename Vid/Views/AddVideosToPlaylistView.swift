@@ -4,7 +4,7 @@ struct AddVideosToPlaylistView: View {
     let playlistId: UUID
     @ObservedObject var videoManager: VideoManager
     @ObservedObject var playlistManager: PlaylistManager
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) var dismiss
 
     @State private var searchText = ""
     @State private var selectedVideoIds: Set<String> = []
@@ -50,118 +50,157 @@ struct AddVideosToPlaylistView: View {
             }
         }
     }
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            List {
-                ForEach(sortedVideos) { video in
-                    Button(action: {
-                        toggleSelection(video)
-                    }) {
-                        HStack(spacing: 12) {
-                            Image(systemName: selectedVideoIds.contains(video.id) ? "checkmark.circle.fill" : "circle")
-                                .foregroundColor(selectedVideoIds.contains(video.id) ? .blue : .gray)
-                                .font(.system(size: 22))
 
-                            VStack(alignment: .leading) {
-                                Text(video.name)
-                                    .font(.subheadline)
-                                    .lineLimit(1)
-                                    .foregroundColor(.primary)
-                                Text(video.durationFormatted)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+    var body: some View {
+        NavigationView {
+            ZStack(alignment: .bottom) {
+                List {
+                    ForEach(sortedVideos) { video in
+                        Button(action: {
+                            toggleSelection(video)
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: selectedVideoIds.contains(video.id) ? "checkmark.circle.fill" : "circle")
+                                    .foregroundColor(selectedVideoIds.contains(video.id) ? .blue : .gray)
+                                    .font(.system(size: 22))
+
+                                VStack(alignment: .leading) {
+                                    Text(video.name)
+                                        .font(.subheadline)
+                                        .lineLimit(1)
+                                        .foregroundColor(.primary)
+                                    Text(video.durationFormatted)
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
                             }
-                            Spacer()
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 8)
+                            .background(focusedElement == .videoItem(video.id) ? Color.blue.opacity(0.15) : Color.clear)
+                            .cornerRadius(8)
+                            .vidFocusHighlight()
                         }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 8)
-                        .background(focusedElement == .videoItem(video.id) ? Color.blue.opacity(0.15) : Color.clear)
-                        .cornerRadius(8)
-                        .vidFocusHighlight()
+                        .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                        .listRowSeparatorTint(Color.gray.opacity(0.3))
+                        .focused($focusedElement, equals: .videoItem(video.id))
                     }
-                    .buttonStyle(.plain)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-                    .listRowSeparatorTint(Color.gray.opacity(0.3))
-                    .focused($focusedElement, equals: .videoItem(video.id))
+                }
+                .listStyle(.plain)
+                .safeAreaInset(edge: .bottom) {
+                    Color.clear.frame(height: 100)
+                }
+
+                // Fixed bottom card
+                VStack(spacing: 0) {
+                    Divider()
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Selected")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Text("\(selectedVideoIds.count) Videos")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                        }
+
+                        Spacer()
+
+                        Button(action: save) {
+                            Text("Add to Playlist")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 12)
+                                .background(selectedVideoIds.isEmpty ? Color.gray : Color.blue)
+                                .cornerRadius(10)
+                        }
+                        .disabled(selectedVideoIds.isEmpty)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+                    .background(.ultraThinMaterial)
                 }
             }
-            .listStyle(.plain)
-
-            Button(action: save) {
-                Text("Save")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
+            .navigationTitle("Add Videos")
+            .navigationBarTitleDisplayMode(.inline)
+            .if(showSearch) { view in
+                view.searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search videos")
             }
-            .buttonStyle(VidButtonStyle())
-            .padding()
-            .focused($focusedElement, equals: .eqReset)
-        }
-        .navigationTitle("Add Videos")
-        .if(showSearch) { view in
-            view.searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search videos")
-        }
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                HStack(spacing: 8) {
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
-                        withAnimation {
-                            showSearch.toggle()
-                            if !showSearch {
-                                searchText = ""
-                            }
-                        }
+                        dismiss()
                     }) {
-                        Image(systemName: showSearch ? "xmark" : "magnifyingglass")
+                        Image(systemName: "xmark")
                             .foregroundColor(Color.primary)
+                            .font(.system(size: 16, weight: .medium))
                     }
                     .buttonStyle(VidButtonStyle())
+                }
 
-                    Menu {
-                        Section {
-                            Button(action: {
-                                sortOption = .name
-                            }) {
-                                Label("Name", systemImage: sortOption == .name ? "checkmark" : "")
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    HStack(spacing: 8) {
+                        Button(action: {
+                            withAnimation {
+                                showSearch.toggle()
+                                if !showSearch {
+                                    searchText = ""
+                                }
                             }
-
-                            Button(action: {
-                                sortOption = .duration
-                            }) {
-                                Label("Duration", systemImage: sortOption == .duration ? "checkmark" : "")
-                            }
-
-                            Button(action: {
-                                sortOption = .recent
-                            }) {
-                                Label("Recent", systemImage: sortOption == .recent ? "checkmark" : "")
-                            }
+                        }) {
+                            Image(systemName: showSearch ? "xmark" : "magnifyingglass")
+                                .foregroundColor(Color.primary)
                         }
+                        .buttonStyle(VidButtonStyle())
 
-                        Divider()
+                        Menu {
+                            Section {
+                                Button(action: {
+                                    sortOption = .name
+                                }) {
+                                    Label("Name", systemImage: sortOption == .name ? "checkmark" : "")
+                                }
 
-                        Button(action: { sortAscending.toggle() }) {
-                            Label(sortAscending ? "Ascending" : "Descending", systemImage: sortAscending ? "arrow.up" : "arrow.down")
+                                Button(action: {
+                                    sortOption = .duration
+                                }) {
+                                    Label("Duration", systemImage: sortOption == .duration ? "checkmark" : "")
+                                }
+
+                                Button(action: {
+                                    sortOption = .recent
+                                }) {
+                                    Label("Recent", systemImage: sortOption == .recent ? "checkmark" : "")
+                                }
+                            }
+
+                            Divider()
+
+                            Button(action: { sortAscending.toggle() }) {
+                                Label(sortAscending ? "Ascending" : "Descending", systemImage: sortAscending ? "arrow.up" : "arrow.down")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .foregroundColor(Color.primary)
+                                .vidFocusHighlight()
                         }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .foregroundColor(Color.primary)
-                            .vidFocusHighlight()
+                        .focused($focusedElement, equals: .sort)
                     }
-                    .focused($focusedElement, equals: .sort)
+                }
+            }
+            .onAppear {
+                if focusedElement == nil {
+                    if let firstId = sortedVideos.first?.id {
+                        focusedElement = .videoItem(firstId)
+                    }
                 }
             }
         }
-        .onAppear {
-            if focusedElement == nil {
-                if let firstId = sortedVideos.first?.id {
-                    focusedElement = .videoItem(firstId)
-                }
-            }
-        }
+        .navigationViewStyle(.stack)
     }
-    
+
     func toggleSelection(_ video: Video) {
         if selectedVideoIds.contains(video.id) {
             selectedVideoIds.remove(video.id)
@@ -169,10 +208,10 @@ struct AddVideosToPlaylistView: View {
             selectedVideoIds.insert(video.id)
         }
     }
-    
+
     func save() {
         let videosToAdd = videoManager.videos.filter { selectedVideoIds.contains($0.id) }
         playlistManager.addVideos(videosToAdd, to: playlistId)
-        presentationMode.wrappedValue.dismiss()
+        dismiss()
     }
 }

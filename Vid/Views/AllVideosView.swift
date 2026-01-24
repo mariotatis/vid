@@ -7,7 +7,8 @@ struct AllVideosView: View {
     @ObservedObject var settings: SettingsStore
     @EnvironmentObject var playerVM: PlayerViewModel
     @ObservedObject var playlistManager = PlaylistManager.shared
-    
+    @Environment(\.scenePhase) private var scenePhase
+
     @State private var showFileImporter = false
     @State private var sortOption: SortOption = .name
     @State private var sortAscending: Bool = true
@@ -70,28 +71,15 @@ struct AllVideosView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    HStack(spacing: 8) {
-                        Button(action: {
-                            print("Vid: Plus button tapped")
-                            showFileImporter = true
-                        }) {
-                            Image(systemName: "plus")
-                                .foregroundColor(Color.primary)
-                        }
-                        .buttonStyle(VidButtonStyle())
-                        .focused($focusedElement, equals: .search)
-
-                        Button(action: {
-                            Task {
-                                await videoManager.loadVideosAsync()
-                            }
-                        }) {
-                            Image(systemName: "arrow.clockwise")
-                                .foregroundColor(Color.primary)
-                        }
-                        .buttonStyle(VidButtonStyle())
-                        .focused($focusedElement, equals: .filter)
+                    Button(action: {
+                        print("Vid: Plus button tapped")
+                        showFileImporter = true
+                    }) {
+                        Image(systemName: "plus")
+                            .foregroundColor(Color.primary)
                     }
+                    .buttonStyle(VidButtonStyle())
+                    .focused($focusedElement, equals: .search)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -178,6 +166,11 @@ struct AllVideosView: View {
                 if let firstId = sortedVideos.first?.id {
                     focusedElement = .videoItem(firstId)
                 }
+            }
+        }
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active {
+                videoManager.loadVideos()
             }
         }
     }
