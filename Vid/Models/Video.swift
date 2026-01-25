@@ -7,6 +7,7 @@ struct Video: Identifiable, Codable, Equatable, Hashable {
     let url: URL
     let duration: TimeInterval
     let dateAdded: Date
+    let fileSize: Int64
 
     var durationFormatted: String {
         let formatter = DateComponentsFormatter()
@@ -14,5 +15,9 @@ struct Video: Identifiable, Codable, Equatable, Hashable {
         formatter.unitsStyle = .positional
         formatter.zeroFormattingBehavior = .pad
         return formatter.string(from: duration) ?? "0:00"
+    }
+
+    var fileSizeFormatted: String {
+        ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file)
     }
 }

@@ -69,7 +69,15 @@ class VideoManager: ObservableObject {
                 self.videos = loaded.map { video in
                     let fileName = video.url.lastPathComponent
                     let newURL = documents.appendingPathComponent(fileName)
-                    return Video(name: video.name, url: newURL, duration: video.duration, dateAdded: video.dateAdded)
+                    
+                    // If fileSize is 0 (or wasn't in original JSON), try to get it now
+                    var size = video.fileSize
+                    if size == 0 {
+                        let resources = try? newURL.resourceValues(forKeys: [.fileSizeKey])
+                        size = Int64(resources?.fileSize ?? 0)
+                    }
+                    
+                    return Video(name: video.name, url: newURL, duration: video.duration, dateAdded: video.dateAdded, fileSize: size)
                 }
             } else {
                 self.videos = loaded
@@ -151,7 +159,11 @@ class VideoManager: ObservableObject {
                 let existingVideo = self.videos.first(where: { $0.url.lastPathComponent == url.lastPathComponent })
                 let dateAdded = existingVideo?.dateAdded ?? Date()
 
-                let video = Video(name: url.deletingPathExtension().lastPathComponent, url: url, duration: duration, dateAdded: dateAdded)
+                // Get file size
+                let resources = try? url.resourceValues(forKeys: [.fileSizeKey])
+                let fileSize = Int64(resources?.fileSize ?? 0)
+
+                let video = Video(name: url.deletingPathExtension().lastPathComponent, url: url, duration: duration, dateAdded: dateAdded, fileSize: fileSize)
                 loadedVideos.append(video)
             }
             

@@ -36,9 +36,9 @@ struct VideoListView: View {
                                     .font(.subheadline)
                                     .lineLimit(1)
                                     .foregroundColor(.primary)
-                                Text(video.durationFormatted)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                                    Text("\(video.durationFormatted) - \(video.fileSizeFormatted)")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
                             }
                             Spacer()
                             Image(systemName: "chevron.right")

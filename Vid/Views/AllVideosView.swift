@@ -18,7 +18,7 @@ struct AllVideosView: View {
     @FocusState private var focusedElement: AppFocus?
 
     enum SortOption {
-        case name, duration, recent
+        case name, duration, recent, size
     }
     
     var filteredVideos: [Video] {
@@ -42,6 +42,8 @@ struct AllVideosView: View {
                 return sortAscending ? v1.duration < v2.duration : v1.duration > v2.duration
             case .recent:
                 return sortAscending ? v1.dateAdded < v2.dateAdded : v1.dateAdded > v2.dateAdded
+            case .size:
+                return sortAscending ? v1.fileSize < v2.fileSize : v1.fileSize > v2.fileSize
             }
         }
     }
@@ -171,6 +173,12 @@ struct AllVideosView: View {
                                     sortOption = .recent
                                 }) {
                                     Label("Recent", systemImage: sortOption == .recent ? "checkmark" : "")
+                                }
+
+                                Button(action: {
+                                    sortOption = .size
+                                }) {
+                                    Label("Size", systemImage: sortOption == .size ? "checkmark" : "")
                                 }
                             }
 
