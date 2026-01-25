@@ -59,8 +59,8 @@ struct AllVideosView: View {
                                 .fill(Color.gray.opacity(0.15))
                                 .frame(width: 120, height: 120)
                                 .overlay(
-                                    Image(systemName: "film.stack")
-                                        .font(.system(size: 48, weight: .medium))
+                                    Image(systemName: "play.rectangle.on.rectangle")
+                                        .font(.system(size: 44, weight: .medium))
                                         .foregroundColor(Color.gray.opacity(0.6))
                                 )
                                 .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)

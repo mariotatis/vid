@@ -180,25 +180,29 @@ struct PlaylistsView: View {
     private var emptyStateView: some View {
         VStack(spacing: 24) {
             // Icon with shadow
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color.gray.opacity(0.15))
-                .frame(width: 120, height: 120)
-                .overlay(
-                    VStack(spacing: 4) {
-                        Image(systemName: "play.rectangle.fill")
-                            .font(.system(size: 40, weight: .medium))
+            ZStack(alignment: .bottomTrailing) {
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.gray.opacity(0.15))
+                    .frame(width: 120, height: 120)
+                    .overlay(
+                        Image(systemName: "music.note.list")
+                            .font(.system(size: 44, weight: .medium))
                             .foregroundColor(Color.gray.opacity(0.6))
-                        HStack(spacing: 4) {
-                            ForEach(0..<3) { _ in
-                                Circle()
-                                    .fill(Color.gray.opacity(0.4))
-                                    .frame(width: 6, height: 6)
-                            }
-                        }
-                    }
-                )
-                .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
-                .padding(.bottom, 8)
+                    )
+                    .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
+
+                // Plus badge
+                Circle()
+                    .fill(Color(UIColor.systemBackground))
+                    .frame(width: 44, height: 44)
+                    .overlay(
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 32))
+                            .foregroundColor(Color.gray.opacity(0.7))
+                    )
+                    .offset(x: 8, y: 8)
+            }
+            .padding(.bottom, 8)
 
             // Text content
             VStack(spacing: 12) {
