@@ -18,7 +18,17 @@ struct AllVideosView: View {
     @FocusState private var focusedElement: AppFocus?
 
     enum SortOption {
-        case name, duration, recent, size
+        case name, duration, recent, size, mostWatched
+    }
+
+    // Default order per sort option
+    private func defaultOrder(for option: SortOption) -> Bool {
+        switch option {
+        case .name:
+            return true // Ascending
+        case .duration, .recent, .size, .mostWatched:
+            return false // Descending
+        }
     }
     
     var filteredVideos: [Video] {
@@ -41,9 +51,14 @@ struct AllVideosView: View {
             case .duration:
                 return sortAscending ? v1.duration < v2.duration : v1.duration > v2.duration
             case .recent:
+                if v1.isWatched != v2.isWatched {
+                    return !v1.isWatched
+                }
                 return sortAscending ? v1.dateAdded < v2.dateAdded : v1.dateAdded > v2.dateAdded
             case .size:
                 return sortAscending ? v1.fileSize < v2.fileSize : v1.fileSize > v2.fileSize
+            case .mostWatched:
+                return sortAscending ? v1.watchCount < v2.watchCount : v1.watchCount > v2.watchCount
             }
         }
     }
@@ -159,33 +174,49 @@ struct AllVideosView: View {
                             Section {
                                 Button(action: {
                                     sortOption = .name
+                                    sortAscending = defaultOrder(for: .name)
                                 }) {
                                     Label("Name", systemImage: sortOption == .name ? "checkmark" : "")
                                 }
 
                                 Button(action: {
                                     sortOption = .duration
+                                    sortAscending = defaultOrder(for: .duration)
                                 }) {
                                     Label("Duration", systemImage: sortOption == .duration ? "checkmark" : "")
                                 }
 
                                 Button(action: {
                                     sortOption = .recent
+                                    sortAscending = defaultOrder(for: .recent)
                                 }) {
                                     Label("Recent", systemImage: sortOption == .recent ? "checkmark" : "")
                                 }
 
                                 Button(action: {
                                     sortOption = .size
+                                    sortAscending = defaultOrder(for: .size)
                                 }) {
                                     Label("Size", systemImage: sortOption == .size ? "checkmark" : "")
+                                }
+
+                                Button(action: {
+                                    sortOption = .mostWatched
+                                    sortAscending = defaultOrder(for: .mostWatched)
+                                }) {
+                                    Label("Most Watched", systemImage: sortOption == .mostWatched ? "checkmark" : "")
                                 }
                             }
 
                             Divider()
 
-                            Button(action: { sortAscending.toggle() }) {
-                                Label(sortAscending ? "Ascending" : "Descending", systemImage: sortAscending ? "arrow.up" : "arrow.down")
+                            Section {
+                                Button(action: { sortAscending = true }) {
+                                    Label("Ascending", systemImage: sortAscending ? "checkmark" : "")
+                                }
+                                Button(action: { sortAscending = false }) {
+                                    Label("Descending", systemImage: !sortAscending ? "checkmark" : "")
+                                }
                             }
 
                             Divider()

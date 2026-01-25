@@ -77,7 +77,7 @@ class VideoManager: ObservableObject {
                         size = Int64(resources?.fileSize ?? 0)
                     }
                     
-                    return Video(name: video.name, url: newURL, duration: video.duration, dateAdded: video.dateAdded, fileSize: size)
+                    return Video(name: video.name, url: newURL, duration: video.duration, dateAdded: video.dateAdded, fileSize: size, isWatched: video.isWatched, watchCount: video.watchCount)
                 }
             } else {
                 self.videos = loaded
@@ -163,7 +163,11 @@ class VideoManager: ObservableObject {
                 let resources = try? url.resourceValues(forKeys: [.fileSizeKey])
                 let fileSize = Int64(resources?.fileSize ?? 0)
 
-                let video = Video(name: url.deletingPathExtension().lastPathComponent, url: url, duration: duration, dateAdded: dateAdded, fileSize: fileSize)
+                // Get watched state if exists
+                let isWatched = existingVideo?.isWatched ?? false
+                let watchCount = existingVideo?.watchCount ?? 0
+
+                let video = Video(name: url.deletingPathExtension().lastPathComponent, url: url, duration: duration, dateAdded: dateAdded, fileSize: fileSize, isWatched: isWatched, watchCount: watchCount)
                 loadedVideos.append(video)
             }
             

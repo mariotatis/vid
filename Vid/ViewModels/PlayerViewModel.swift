@@ -126,6 +126,7 @@ class PlayerViewModel: ObservableObject {
         
         self.currentVideo = video
         settings.lastVideoId = video.id
+        
         startPlayback()
     }
     
@@ -146,6 +147,14 @@ class PlayerViewModel: ObservableObject {
     
     private func startPlayback() {
         guard let video = currentVideo else { return }
+        
+        // Update watch status
+        if let index = VideoManager.shared.videos.firstIndex(where: { $0.id == video.id }) {
+            VideoManager.shared.videos[index].isWatched = true
+            VideoManager.shared.videos[index].watchCount += 1
+            VideoManager.shared.saveVideosToDisk()
+        }
+
         
         // 1. Prepare AVPlayer (Video Only - Muted)
         let playerItem = AVPlayerItem(url: video.url)

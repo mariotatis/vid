@@ -13,7 +13,7 @@ struct LikedVideosView: View {
     @State private var showThumbnails = true
 
     enum SortOption {
-        case name, duration, recent, size
+        case name, duration, recent, size, mostWatched
     }
 
     var likedVideos: [Video] {
@@ -40,9 +40,14 @@ struct LikedVideosView: View {
             case .duration:
                 return sortAscending ? v1.duration < v2.duration : v1.duration > v2.duration
             case .recent:
+                if v1.isWatched != v2.isWatched {
+                    return !v1.isWatched
+                }
                 return sortAscending ? v1.dateAdded < v2.dateAdded : v1.dateAdded > v2.dateAdded
             case .size:
                 return sortAscending ? v1.fileSize < v2.fileSize : v1.fileSize > v2.fileSize
+            case .mostWatched:
+                return sortAscending ? v1.watchCount < v2.watchCount : v1.watchCount > v2.watchCount
             }
         }
     }
@@ -131,6 +136,12 @@ struct LikedVideosView: View {
                                     sortOption = .size
                                 }) {
                                     Label("Size", systemImage: sortOption == .size ? "checkmark" : "")
+                                }
+
+                                Button(action: {
+                                    sortOption = .mostWatched
+                                }) {
+                                    Label("Most Watched", systemImage: sortOption == .mostWatched ? "checkmark" : "")
                                 }
                             }
 

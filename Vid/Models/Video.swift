@@ -8,6 +8,8 @@ struct Video: Identifiable, Codable, Equatable, Hashable {
     let duration: TimeInterval
     let dateAdded: Date
     let fileSize: Int64
+    var isWatched: Bool
+    var watchCount: Int
 
     var durationFormatted: String {
         let formatter = DateComponentsFormatter()
