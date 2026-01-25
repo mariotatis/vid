@@ -12,7 +12,7 @@ struct PlaylistDetailView: View {
     @State private var sortAscending: Bool = true
     @State private var searchText = ""
     @State private var showSearch = false
-    @State private var showThumbnails = false
+    @State private var showThumbnails = true
     @State private var showAddVideos = false
 
     enum SortOption {

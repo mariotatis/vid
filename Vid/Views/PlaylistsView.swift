@@ -12,7 +12,7 @@ struct PlaylistsView: View {
 
     @State private var showCreatePlaylist = false
     @State private var newPlaylistName = ""
-    @AppStorage("playlistViewStyle") private var viewStyle: PlaylistViewStyle = .list
+    @AppStorage("playlistViewStyle") private var viewStyle: PlaylistViewStyle = .grid
     @FocusState private var focusedElement: AppFocus?
     @State private var isShowingLikedVideos = false
 
