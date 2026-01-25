@@ -2,7 +2,7 @@ import SwiftUI
 
 enum PlaylistViewStyle: String, CaseIterable {
     case list = "list"
-    case preview = "preview"
+    case grid = "grid"
 }
 
 struct PlaylistsView: View {
@@ -12,18 +12,35 @@ struct PlaylistsView: View {
 
     @State private var showCreatePlaylist = false
     @State private var newPlaylistName = ""
-    @State private var viewStyle: PlaylistViewStyle = .list
+    @AppStorage("playlistViewStyle") private var viewStyle: PlaylistViewStyle = .list
     @FocusState private var focusedElement: AppFocus?
+    @State private var isShowingLikedVideos = false
+
+    private var hasLikedVideos: Bool {
+        !settings.likedVideoIds.isEmpty
+    }
+
+    private var shouldShowLikedPlaylist: Bool {
+        hasLikedVideos || isShowingLikedVideos
+    }
+
+    private var likedVideoCount: Int {
+        settings.likedVideoIds.count
+    }
+
+    private var hasAnyContent: Bool {
+        shouldShowLikedPlaylist || !playlistManager.playlists.isEmpty
+    }
 
     var body: some View {
         NavigationView {
             Group {
-                if playlistManager.playlists.isEmpty {
+                if !hasAnyContent {
                     emptyStateView
                 } else if viewStyle == .list {
                     playlistListView
                 } else {
-                    playlistPreviewGrid
+                    playlistGridView
                 }
             }
             .navigationTitle("Playlists")
@@ -40,18 +57,20 @@ struct PlaylistsView: View {
                         .buttonStyle(VidButtonStyle())
                         .focused($focusedElement, equals: .search)
 
-                        Menu {
-                            Button(action: { viewStyle = .list }) {
-                                Label("List", systemImage: viewStyle == .list ? "checkmark" : "")
+                        if hasAnyContent {
+                            Menu {
+                                Button(action: { viewStyle = .list }) {
+                                    Label("List View", systemImage: viewStyle == .list ? "checkmark" : "")
+                                }
+                                Button(action: { viewStyle = .grid }) {
+                                    Label("Grid View", systemImage: viewStyle == .grid ? "checkmark" : "")
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis.circle")
+                                    .foregroundColor(Color.primary)
                             }
-                            Button(action: { viewStyle = .preview }) {
-                                Label("Preview", systemImage: viewStyle == .preview ? "checkmark" : "")
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis.circle")
-                                .foregroundColor(Color.primary)
+                            .buttonStyle(VidButtonStyle())
                         }
-                        .buttonStyle(VidButtonStyle())
                     }
                 }
             }
@@ -68,7 +87,9 @@ struct PlaylistsView: View {
         .navigationViewStyle(.stack)
         .onAppear {
             if focusedElement == nil {
-                if let firstId = playlistManager.playlists.first?.id {
+                if shouldShowLikedPlaylist {
+                    focusedElement = .likedPlaylist
+                } else if let firstId = playlistManager.playlists.first?.id {
                     focusedElement = .playlistItem(firstId)
                 }
             }
@@ -77,6 +98,35 @@ struct PlaylistsView: View {
 
     private var playlistListView: some View {
         List {
+            // Liked playlist at the top
+            if shouldShowLikedPlaylist {
+                NavigationLink(destination: LikedVideosView(videoManager: videoManager, settings: settings)
+                    .onAppear { isShowingLikedVideos = true }
+                    .onDisappear { isShowingLikedVideos = false }
+                ) {
+                    HStack(spacing: 12) {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(width: 50, height: 50)
+                            .overlay(
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundColor(Color.gray.opacity(0.6))
+                            )
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Liked")
+                                .font(.headline)
+                            Text("\(likedVideoCount) videos")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .vidFocusHighlight()
+                }
+                .focused($focusedElement, equals: .likedPlaylist)
+            }
+
             ForEach(playlistManager.playlists) { playlist in
                 NavigationLink(destination: PlaylistDetailView(playlist: playlist, playlistManager: playlistManager, videoManager: videoManager, settings: settings)) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -97,9 +147,21 @@ struct PlaylistsView: View {
         .listStyle(.plain)
     }
 
-    private var playlistPreviewGrid: some View {
+    private var playlistGridView: some View {
         ScrollView {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 16) {
+                // Liked playlist at the top
+                if shouldShowLikedPlaylist {
+                    NavigationLink(destination: LikedVideosView(videoManager: videoManager, settings: settings)
+                        .onAppear { isShowingLikedVideos = true }
+                        .onDisappear { isShowingLikedVideos = false }
+                    ) {
+                        LikedPlaylistPreviewCell(likedCount: likedVideoCount)
+                    }
+                    .buttonStyle(.plain)
+                    .focused($focusedElement, equals: .likedPlaylist)
+                }
+
                 ForEach(playlistManager.playlists) { playlist in
                     NavigationLink(destination: PlaylistDetailView(playlist: playlist, playlistManager: playlistManager, videoManager: videoManager, settings: settings)) {
                         PlaylistPreviewCell(
@@ -176,6 +238,35 @@ struct PlaylistsView: View {
     }
 }
 
+struct LikedPlaylistPreviewCell: View {
+    let likedCount: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Heart icon instead of 4-square grid
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.gray.opacity(0.2))
+                .aspectRatio(1, contentMode: .fit)
+                .overlay(
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 44))
+                        .foregroundColor(Color.gray.opacity(0.6))
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Liked")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+                    .foregroundColor(.primary)
+                Text("\(likedCount) videos")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+}
+
 struct PlaylistPreviewCell: View {
     let playlist: Playlist
     @ObservedObject var videoManager: VideoManager
@@ -190,14 +281,14 @@ struct PlaylistPreviewCell: View {
         VStack(alignment: .leading, spacing: 8) {
             // 2x2 grid of thumbnails
             GeometryReader { geometry in
-                let cellSize = (geometry.size.width - 2) / 2
+                let cellSize = geometry.size.width / 2
 
-                VStack(spacing: 2) {
-                    HStack(spacing: 2) {
+                VStack(spacing: 0) {
+                    HStack(spacing: 0) {
                         thumbnailCell(index: 0, size: cellSize)
                         thumbnailCell(index: 1, size: cellSize)
                     }
-                    HStack(spacing: 2) {
+                    HStack(spacing: 0) {
                         thumbnailCell(index: 2, size: cellSize)
                         thumbnailCell(index: 3, size: cellSize)
                     }
@@ -222,7 +313,7 @@ struct PlaylistPreviewCell: View {
     @ViewBuilder
     private func thumbnailCell(index: Int, size: CGFloat) -> some View {
         if index < resolvedVideos.count {
-            VideoThumbnailView(videoURL: resolvedVideos[index].url)
+            VideoThumbnailView(videoURL: resolvedVideos[index].url, contentMode: .fill, width: size, height: size)
                 .frame(width: size, height: size)
                 .clipped()
         } else {

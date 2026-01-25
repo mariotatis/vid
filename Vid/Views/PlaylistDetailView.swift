@@ -123,20 +123,21 @@ struct PlaylistDetailView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 8) {
-                    Button(action: {
-                        withAnimation {
-                            showSearch.toggle()
-                            if !showSearch {
-                                searchText = ""
+                    if !resolvedVideos.isEmpty {
+                        Button(action: {
+                            withAnimation {
+                                showSearch.toggle()
+                                if !showSearch {
+                                    searchText = ""
+                                }
                             }
+                        }) {
+                            Image(systemName: showSearch ? "xmark" : "magnifyingglass")
+                                .foregroundColor(Color.primary)
                         }
-                    }) {
-                        Image(systemName: showSearch ? "xmark" : "magnifyingglass")
-                            .foregroundColor(Color.primary)
-                    }
-                    .buttonStyle(VidButtonStyle())
+                        .buttonStyle(VidButtonStyle())
 
-                    Menu {
+                        Menu {
                         Section {
                             Button(action: {
                                 sortOption = .name
@@ -174,12 +175,13 @@ struct PlaylistDetailView: View {
                         Button(action: { settings.autoplayOnAppOpen.toggle() }) {
                             Label("Autoplay on App Open", systemImage: settings.autoplayOnAppOpen ? "checkmark" : "")
                         }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .foregroundColor(Color.primary)
-                            .vidFocusHighlight()
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .foregroundColor(Color.primary)
+                                .vidFocusHighlight()
+                        }
+                        .focused($focusedElement, equals: .sort)
                     }
-                    .focused($focusedElement, equals: .sort)
 
                     Button(action: {
                         showAddVideos = true

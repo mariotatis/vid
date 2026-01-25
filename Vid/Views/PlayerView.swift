@@ -43,6 +43,11 @@ struct PlayerView: View {
 
     @State private var centerToastMessage: String?
 
+    private var isCurrentVideoLiked: Bool {
+        guard let videoId = playerVM.currentVideo?.id else { return false }
+        return settings.isVideoLiked(videoId)
+    }
+
     var body: some View {
         ZStack {
             Color.black.edgesIgnoringSafeArea(.all)
@@ -121,7 +126,23 @@ struct PlayerView: View {
                                         .buttonStyle(VidButtonStyle())
                                         .foregroundColor(.white)
                                         .focused($focusedElement, equals: .playerRatio)
-                                        
+
+                                        Button(action: {
+                                            if let videoId = playerVM.currentVideo?.id {
+                                                settings.toggleLike(for: videoId)
+                                                showCenterToast(settings.isVideoLiked(videoId) ? "Liked" : "Unliked")
+                                            }
+                                            resetControlTimer()
+                                        }) {
+                                            Image(systemName: isCurrentVideoLiked ? "heart.fill" : "heart")
+                                                .font(.system(size: 22))
+                                                .padding(6)
+                                                .background(Color.white.opacity(0.001))
+                                        }
+                                        .buttonStyle(VidButtonStyle())
+                                        .foregroundColor(.white)
+                                        .focused($focusedElement, equals: .playerLike)
+
                                         Spacer()
                                         
                                         Button(action: {

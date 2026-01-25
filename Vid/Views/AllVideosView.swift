@@ -14,7 +14,7 @@ struct AllVideosView: View {
     @State private var sortAscending: Bool = true
     @State private var searchText = ""
     @State private var showSearch = false
-    @State private var showThumbnails = false
+    @State private var showThumbnails = true
     @FocusState private var focusedElement: AppFocus?
 
     enum SortOption {
@@ -138,21 +138,22 @@ struct AllVideosView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack(spacing: 8) {
-                        Button(action: {
-                            withAnimation {
-                                showSearch.toggle()
-                                if !showSearch {
-                                    searchText = ""
+                    if !videoManager.videos.isEmpty {
+                        HStack(spacing: 8) {
+                            Button(action: {
+                                withAnimation {
+                                    showSearch.toggle()
+                                    if !showSearch {
+                                        searchText = ""
+                                    }
                                 }
+                            }) {
+                                Image(systemName: showSearch ? "xmark" : "magnifyingglass")
+                                    .foregroundColor(Color.primary)
                             }
-                        }) {
-                            Image(systemName: showSearch ? "xmark" : "magnifyingglass")
-                                .foregroundColor(Color.primary)
-                        }
-                        .buttonStyle(VidButtonStyle())
+                            .buttonStyle(VidButtonStyle())
 
-                        Menu {
+                            Menu {
                             Section {
                                 Button(action: {
                                     sortOption = .name
@@ -196,6 +197,7 @@ struct AllVideosView: View {
                                 .vidFocusHighlight()
                         }
                         .focused($focusedElement, equals: .sort)
+                        }
                     }
                 }
             }

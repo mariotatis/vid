@@ -73,6 +73,9 @@ struct VideoListView: View {
 
 struct VideoThumbnailView: View {
     let videoURL: URL
+    var contentMode: ContentMode = .fill
+    var width: CGFloat? = 60
+    var height: CGFloat? = 45
     @State private var thumbnail: UIImage?
     @State private var isLoading = false
 
@@ -81,8 +84,8 @@ struct VideoThumbnailView: View {
             if let thumbnail = thumbnail {
                 Image(uiImage: thumbnail)
                     .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 60, height: 45)
+                    .aspectRatio(contentMode: contentMode)
+                    .frame(width: width, height: height)
                     .clipped()
             } else {
                 Color.gray.opacity(0.3)

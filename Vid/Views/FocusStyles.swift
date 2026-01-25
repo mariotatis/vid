@@ -9,11 +9,13 @@ enum AppFocus: Hashable {
     case layout
     case videoItem(String)
     case playlistItem(UUID)
+    case likedPlaylist
     
     // Player View
     case playerShuffle
     case playerEQ
     case playerRatio
+    case playerLike
     case playerClose
     case playerPrevious
     case playerPlayPause

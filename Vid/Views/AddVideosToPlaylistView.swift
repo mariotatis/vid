@@ -89,13 +89,17 @@ struct AddVideosToPlaylistView: View {
                         Button(action: {
                             dismiss()
                         }) {
-                            Text("Done")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 24)
-                                .padding(.vertical, 14)
-                                .background(Color(white: 0.25))
-                                .cornerRadius(12)
+                            HStack(spacing: 8) {
+                                Image(systemName: "xmark.circle")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text("Close")
+                                    .font(.headline)
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 14)
+                            .background(Color(white: 0.25))
+                            .cornerRadius(12)
                         }
                         .buttonStyle(.plain)
                         .padding(.top, 8)
@@ -190,52 +194,54 @@ struct AddVideosToPlaylistView: View {
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack(spacing: 8) {
-                        Button(action: {
-                            withAnimation {
-                                showSearch.toggle()
-                                if !showSearch {
-                                    searchText = ""
+                    if !availableVideos.isEmpty {
+                        HStack(spacing: 8) {
+                            Button(action: {
+                                withAnimation {
+                                    showSearch.toggle()
+                                    if !showSearch {
+                                        searchText = ""
+                                    }
                                 }
+                            }) {
+                                Image(systemName: showSearch ? "xmark" : "magnifyingglass")
+                                    .foregroundColor(Color.primary)
                             }
-                        }) {
-                            Image(systemName: showSearch ? "xmark" : "magnifyingglass")
-                                .foregroundColor(Color.primary)
+                            .buttonStyle(VidButtonStyle())
+
+                            Menu {
+                                Section {
+                                    Button(action: {
+                                        sortOption = .name
+                                    }) {
+                                        Label("Name", systemImage: sortOption == .name ? "checkmark" : "")
+                                    }
+
+                                    Button(action: {
+                                        sortOption = .duration
+                                    }) {
+                                        Label("Duration", systemImage: sortOption == .duration ? "checkmark" : "")
+                                    }
+
+                                    Button(action: {
+                                        sortOption = .recent
+                                    }) {
+                                        Label("Recent", systemImage: sortOption == .recent ? "checkmark" : "")
+                                    }
+                                }
+
+                                Divider()
+
+                                Button(action: { sortAscending.toggle() }) {
+                                    Label(sortAscending ? "Ascending" : "Descending", systemImage: sortAscending ? "arrow.up" : "arrow.down")
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis.circle")
+                                    .foregroundColor(Color.primary)
+                                    .vidFocusHighlight()
+                            }
+                            .focused($focusedElement, equals: .sort)
                         }
-                        .buttonStyle(VidButtonStyle())
-
-                        Menu {
-                            Section {
-                                Button(action: {
-                                    sortOption = .name
-                                }) {
-                                    Label("Name", systemImage: sortOption == .name ? "checkmark" : "")
-                                }
-
-                                Button(action: {
-                                    sortOption = .duration
-                                }) {
-                                    Label("Duration", systemImage: sortOption == .duration ? "checkmark" : "")
-                                }
-
-                                Button(action: {
-                                    sortOption = .recent
-                                }) {
-                                    Label("Recent", systemImage: sortOption == .recent ? "checkmark" : "")
-                                }
-                            }
-
-                            Divider()
-
-                            Button(action: { sortAscending.toggle() }) {
-                                Label(sortAscending ? "Ascending" : "Descending", systemImage: sortAscending ? "arrow.up" : "arrow.down")
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis.circle")
-                                .foregroundColor(Color.primary)
-                                .vidFocusHighlight()
-                        }
-                        .focused($focusedElement, equals: .sort)
                     }
                 }
             }

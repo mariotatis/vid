@@ -12,21 +12,28 @@ class SettingsStore: ObservableObject {
     @AppStorage("lastPlaylistId") var lastPlaylistId: String = ""
     @AppStorage("lastVideoId") var lastVideoId: String = ""
     @AppStorage("autoplayOnAppOpen") var autoplayOnAppOpen: Bool = false
-    
+
     @Published var preampValue: Double = 0.5 {
         didSet {
             UserDefaults.standard.set(preampValue, forKey: "preampValue")
         }
     }
-    
+
     @Published var eqValues: [Double] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5] {
         didSet {
             saveEQ()
         }
     }
-    
+
+    @Published var likedVideoIds: Set<String> = [] {
+        didSet {
+            saveLikedVideos()
+        }
+    }
+
     init() {
         loadEQ()
+        loadLikedVideos()
         if let savedPreamp = UserDefaults.standard.object(forKey: "preampValue") as? Double {
             preampValue = savedPreamp
         }
@@ -37,11 +44,36 @@ class SettingsStore: ObservableObject {
             UserDefaults.standard.set(data, forKey: "eqValues")
         }
     }
-    
+
     private func loadEQ() {
         if let data = UserDefaults.standard.data(forKey: "eqValues"),
            let decoded = try? JSONDecoder().decode([Double].self, from: data) {
             eqValues = decoded
+        }
+    }
+
+    private func saveLikedVideos() {
+        if let data = try? JSONEncoder().encode(Array(likedVideoIds)) {
+            UserDefaults.standard.set(data, forKey: "likedVideoIds")
+        }
+    }
+
+    private func loadLikedVideos() {
+        if let data = UserDefaults.standard.data(forKey: "likedVideoIds"),
+           let decoded = try? JSONDecoder().decode([String].self, from: data) {
+            likedVideoIds = Set(decoded)
+        }
+    }
+
+    func isVideoLiked(_ videoId: String) -> Bool {
+        likedVideoIds.contains(videoId)
+    }
+
+    func toggleLike(for videoId: String) {
+        if likedVideoIds.contains(videoId) {
+            likedVideoIds.remove(videoId)
+        } else {
+            likedVideoIds.insert(videoId)
         }
     }
 }
