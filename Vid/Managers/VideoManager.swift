@@ -179,6 +179,10 @@ class VideoManager: ObservableObject {
                 self.videos = finalVideos
                 self.isLoading = false
                 self.saveVideosToDisk()
+                // After loading, prune stale references in playlists and likes
+                let validIds = Set(self.videos.map { $0.id })
+                PlaylistManager.shared.pruneMissingVideoIds(validIds: validIds)
+                SettingsStore.shared.pruneMissingLikes(validIds: validIds)
             }
             
         } catch {

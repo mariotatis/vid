@@ -65,6 +65,14 @@ class SettingsStore: ObservableObject {
         }
     }
 
+    /// Remove likes that no longer correspond to any known video IDs
+    func pruneMissingLikes(validIds: Set<String>) {
+        let pruned = likedVideoIds.intersection(validIds)
+        if pruned != likedVideoIds {
+            likedVideoIds = pruned
+        }
+    }
+
     func isVideoLiked(_ videoId: String) -> Bool {
         likedVideoIds.contains(videoId)
     }

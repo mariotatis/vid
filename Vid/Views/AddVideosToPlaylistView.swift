@@ -138,24 +138,23 @@ struct AddVideosToPlaylistView: View {
                                             .font(.subheadline)
                                             .lineLimit(1)
                                             .foregroundColor(.primary)
-                                        HStack(spacing: 6) {
-                                            Text("\(video.durationFormatted) - \(video.fileSizeFormatted)")
-                                                .font(.subheadline)
-                                                .foregroundColor(.secondary)
-                                            
-                                            if !video.isWatched {
-                                                Text("NEW")
-                                                    .font(.system(size: 10, weight: .bold))
-                                                    .foregroundColor(.white)
-                                                    .padding(.horizontal, 6)
-                                                    .padding(.vertical, 2)
-                                                    .background(Color.blue)
-                                                    .cornerRadius(4)
-                                            }
-                                        }
+                                        Text("\(video.durationFormatted) - \(video.fileSizeFormatted)")
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
                                     }
                                     Spacer()
+                                    if !video.isWatched {
+                                        Text("NEW")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(Color.blue)
+                                            .cornerRadius(4)
+                                    }
                                 }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
                                 .padding(.vertical, 8)
                                 .padding(.horizontal, 8)
                                 .background(focusedElement == .videoItem(video.id) ? Color.blue.opacity(0.15) : Color.clear)

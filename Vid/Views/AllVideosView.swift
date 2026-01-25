@@ -130,11 +130,11 @@ struct AllVideosView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    VideoListView(videos: sortedVideos, showThumbnails: showThumbnails, focusedElement: $focusedElement, onDelete: { offsets in deleteVideo(at: offsets) }, onPlay: { video in
-                        settings.lastContextType = "all"
-                        settings.lastPlaylistId = ""
-                        playerVM.play(video: video, from: sortedVideos, settings: settings)
-                    })
+                VideoListView(videos: sortedVideos, showThumbnails: showThumbnails, focusedElement: $focusedElement, onDelete: { offsets in deleteVideo(at: offsets) }, onPlay: { video in
+                    settings.lastContextType = "all"
+                    settings.lastPlaylistId = ""
+                    playerVM.play(video: video, from: sortedVideos, settings: settings)
+                })
                 }
             }
             .navigationTitle("Library")
@@ -287,6 +287,11 @@ struct AllVideosView: View {
             // Remove from all playlists
             for playlist in playlistManager.playlists {
                 playlistManager.removeVideo(id: video.id, from: playlist.id)
+            }
+
+            // Remove from Liked set
+            if settings.likedVideoIds.contains(video.id) {
+                settings.likedVideoIds.remove(video.id)
             }
 
             // Remove from the in-memory array

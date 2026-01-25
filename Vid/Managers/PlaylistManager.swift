@@ -58,6 +58,20 @@ class PlaylistManager: ObservableObject {
             savePlaylists()
         }
     }
+
+    /// Remove any video IDs from all playlists that are not present in `validIds`.
+    func pruneMissingVideoIds(validIds: Set<String>) {
+        var changed = false
+        for i in playlists.indices {
+            let original = playlists[i].videoIds
+            let filtered = original.filter { validIds.contains($0) }
+            if filtered.count != original.count {
+                playlists[i].videoIds = filtered
+                changed = true
+            }
+        }
+        if changed { savePlaylists() }
+    }
     
     private func savePlaylists() {
         if let encoded = try? JSONEncoder().encode(playlists) {

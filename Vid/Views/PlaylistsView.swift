@@ -105,15 +105,6 @@ struct PlaylistsView: View {
                     .onDisappear { isShowingLikedVideos = false }
                 ) {
                     HStack(spacing: 12) {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.gray.opacity(0.2))
-                            .frame(width: 50, height: 50)
-                            .overlay(
-                                Image(systemName: "heart.fill")
-                                    .font(.system(size: 22))
-                                    .foregroundColor(Color.gray.opacity(0.6))
-                            )
-
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Liked")
                                 .font(.headline)
@@ -121,6 +112,7 @@ struct PlaylistsView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
+                        Spacer()
                     }
                     .vidFocusHighlight()
                 }
