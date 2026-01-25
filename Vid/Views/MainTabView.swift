@@ -8,30 +8,24 @@ struct MainTabView: View {
     @State private var selectedTab: Int = 0
 
     var body: some View {
-        ZStack {
-            TabView(selection: $selectedTab) {
-                AllVideosView(videoManager: videoManager, settings: settingsStore)
-                    .tabItem {
-                        Label("Library", systemImage: "play.rectangle.on.rectangle")
-                    }
-                    .tag(0)
+        TabView(selection: $selectedTab) {
+            AllVideosView(videoManager: videoManager, settings: settingsStore)
+                .tabItem {
+                    Label("Library", systemImage: "play.rectangle.on.rectangle")
+                }
+                .tag(0)
 
-                PlaylistsView(playlistManager: playlistManager, videoManager: videoManager, settings: settingsStore)
-                    .tabItem {
-                        Label("Playlists", systemImage: "music.note.list")
-                    }
-                    .tag(1)
-            }
-            .environmentObject(playerVM)
-            
-            // Full Screen Player Overlay
-            if playerVM.showPlayer {
-                PlayerView()
-                    .environmentObject(playerVM)
-                    .environmentObject(settingsStore)
-                    .transition(.move(edge: .bottom))
-                    .zIndex(1) // Ensure it's on top
-            }
+            PlaylistsView(playlistManager: playlistManager, videoManager: videoManager, settings: settingsStore)
+                .tabItem {
+                    Label("Playlists", systemImage: "music.note.list")
+                }
+                .tag(1)
+        }
+        .environmentObject(playerVM)
+        .fullScreenCover(isPresented: $playerVM.showPlayer) {
+            PlayerView()
+                .environmentObject(playerVM)
+                .environmentObject(settingsStore)
         }
         .onAppear {
             autoPlayLastContext()
