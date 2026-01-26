@@ -66,48 +66,40 @@ struct AllVideosView: View {
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .top) {
-                // Content area
-                NavigationView {
-                    Group {
-                        if videoManager.isLoading {
-                            ProgressView("Loading videos...")
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        } else if videoManager.videos.isEmpty {
-                            emptyStateView
-                        } else {
-                            videoListContent
-                        }
-                    }
-                    .navigationBarHidden(true)
-                }
-                .navigationViewStyle(.stack)
-
+        NavigationView {
+            VStack(spacing: 0) {
                 // Top Navigation Bar
-                VStack(spacing: 0) {
-                    TopNavigationBar(
-                        selectedTab: $selectedTab,
-                        onAddVideo: onAddVideo,
-                        onToggleSearch: {
-                            withAnimation {
-                                showSearch.toggle()
-                            }
-                        },
-                        showingSearch: showSearch,
-                        videosExist: !videoManager.videos.isEmpty,
-                        onAddPlaylist: onAddPlaylist,
-                        hasPlaylistContent: hasPlaylistContent,
-                        sortMenuContent: sortMenuContent,
-                        viewStyleMenuContent: viewStyleMenuContent
-                    )
-                    .padding(.top, geometry.safeAreaInsets.top)
+                TopNavigationBar(
+                    selectedTab: $selectedTab,
+                    onAddVideo: onAddVideo,
+                    onToggleSearch: {
+                        withAnimation {
+                            showSearch.toggle()
+                        }
+                    },
+                    showingSearch: showSearch,
+                    videosExist: !videoManager.videos.isEmpty,
+                    onAddPlaylist: onAddPlaylist,
+                    hasPlaylistContent: hasPlaylistContent,
+                    sortMenuContent: sortMenuContent,
+                    viewStyleMenuContent: viewStyleMenuContent
+                )
 
-                    Spacer()
+                // Content area
+                Group {
+                    if videoManager.isLoading {
+                        ProgressView("Loading videos...")
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if videoManager.videos.isEmpty {
+                        emptyStateView
+                    } else {
+                        videoListContent
+                    }
                 }
             }
-            .ignoresSafeArea(edges: .top)
+            .navigationBarHidden(true)
         }
+        .navigationViewStyle(.stack)
         .onChange(of: showSearch) { newValue in
             if !newValue {
                 searchText = ""
@@ -135,7 +127,6 @@ struct AllVideosView: View {
         VStack(spacing: 0) {
             if showSearch {
                 searchBar
-                    .padding(.top, TOP_NAV_CONTENT_INSET)
             }
 
             VideoListView(
@@ -149,9 +140,6 @@ struct AllVideosView: View {
                     playerVM.play(video: video, from: sortedVideos, settings: settings)
                 }
             )
-            .safeAreaInset(edge: .top, spacing: 0) {
-                Color.clear.frame(height: showSearch ? 0 : TOP_NAV_CONTENT_INSET)
-            }
         }
     }
 

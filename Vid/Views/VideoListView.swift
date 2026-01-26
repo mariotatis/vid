@@ -3,6 +3,10 @@ import Combine
 import AVFoundation
 import QuickLookThumbnailing
 
+// Local constants for VideoListView
+private let VIDEO_ROW_VERTICAL_PADDING: CGFloat = 12
+private let VIDEO_ROW_HORIZONTAL_INSET: CGFloat = 16
+
 struct VideoListView: View {
     let videos: [Video]
     let showThumbnails: Bool
@@ -63,7 +67,7 @@ struct VideoListView: View {
                         .vidFocusHighlight()
                     }
                     .buttonStyle(.plain)
-                    .listRowInsets(EdgeInsets(top: 0, leading: LIST_ROW_HORIZONTAL_INSET, bottom: 0, trailing: LIST_ROW_HORIZONTAL_INSET))
+                    .listRowInsets(EdgeInsets(top: 0, leading: VIDEO_ROW_HORIZONTAL_INSET, bottom: 0, trailing: VIDEO_ROW_HORIZONTAL_INSET))
                     .listRowSeparatorTint(Color.gray.opacity(0.3))
                     .focused(focusedElement, equals: .videoItem(video.id))
                     .id(video.id)

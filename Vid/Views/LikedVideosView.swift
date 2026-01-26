@@ -54,21 +54,17 @@ struct LikedVideosView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
+        VStack(spacing: 0) {
+            // Top Navigation Bar
+            DetailNavigationBar(
+                title: "Liked",
+                onBack: { presentationMode.wrappedValue.dismiss() },
+                trailingContent: { AnyView(trailingButtons) }
+            )
+
             // Content
             contentView
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            // Top Navigation Bar
-            VStack(spacing: 0) {
-                DetailNavigationBar(
-                    title: "Liked",
-                    onBack: { presentationMode.wrappedValue.dismiss() },
-                    trailingContent: { AnyView(trailingButtons) }
-                )
-
-                Spacer()
-            }
         }
         .navigationBarTitle("", displayMode: .inline)
         .navigationBarHidden(true)
@@ -98,12 +94,11 @@ struct LikedVideosView: View {
         VStack(spacing: 0) {
             if showSearch {
                 searchBar
-                    .padding(.top, TOP_NAV_CONTENT_INSET)
             }
 
             VideoListView(
                 videos: sortedVideos,
-                showThumbnails: showThumbnails,
+                showThumbnails: sho wThumbnails,
                 focusedElement: $focusedElement,
                 onDelete: { offsets in unlikeVideo(at: offsets) },
                 onPlay: { video in
@@ -112,9 +107,6 @@ struct LikedVideosView: View {
                     playerVM.play(video: video, from: sortedVideos, settings: settings)
                 }
             )
-            .safeAreaInset(edge: .top, spacing: 0) {
-                Color.clear.frame(height: showSearch ? 0 : TOP_NAV_CONTENT_INSET)
-            }
         }
     }
 

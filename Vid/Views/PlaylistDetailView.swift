@@ -72,21 +72,17 @@ struct PlaylistDetailView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
+        VStack(spacing: 0) {
+            // Top Navigation Bar
+            DetailNavigationBar(
+                title: livePlaylist.name,
+                onBack: { presentationMode.wrappedValue.dismiss() },
+                trailingContent: { AnyView(trailingButtons) }
+            )
+
             // Content
             contentView
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            // Top Navigation Bar
-            VStack(spacing: 0) {
-                DetailNavigationBar(
-                    title: livePlaylist.name,
-                    onBack: { presentationMode.wrappedValue.dismiss() },
-                    trailingContent: { AnyView(trailingButtons) }
-                )
-
-                Spacer()
-            }
         }
         .navigationBarTitle("", displayMode: .inline)
         .navigationBarHidden(true)
@@ -119,7 +115,6 @@ struct PlaylistDetailView: View {
         VStack(spacing: 0) {
             if showSearch {
                 searchBar
-                    .padding(.top, TOP_NAV_CONTENT_INSET)
             }
 
             VideoListView(
@@ -133,9 +128,6 @@ struct PlaylistDetailView: View {
                     playerVM.play(video: video, from: sortedVideos, settings: settings)
                 }
             )
-            .safeAreaInset(edge: .top, spacing: 0) {
-                Color.clear.frame(height: showSearch ? 0 : TOP_NAV_CONTENT_INSET)
-            }
         }
     }
 

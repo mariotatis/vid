@@ -5,6 +5,9 @@ enum NavigationTab: String, CaseIterable {
     case playlists = "Playlists"
 }
 
+// Fixed height for TopNavigationBar (excluding safe area)
+let TOP_NAV_BAR_HEIGHT: CGFloat = 52
+
 // Unified sizing for top navigation icon buttons
 private let NAV_ICON_SIDE: CGFloat = 30
 private let NAV_ICON_FONT: CGFloat = 16
@@ -29,36 +32,34 @@ struct TopNavigationBar: View {
     var viewStyleMenuContent: (() -> AnyView)?
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                // Left side: Tab buttons
-                HStack(spacing: 8) {
-                    ForEach(NavigationTab.allCases, id: \.self) { tab in
-                        TabButton(
-                            title: tab.rawValue,
-                            isSelected: selectedTab == tab
-                        ) {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                selectedTab = tab
-                            }
+        HStack(spacing: 0) {
+            // Left side: Tab buttons
+            HStack(spacing: 8) {
+                ForEach(NavigationTab.allCases, id: \.self) { tab in
+                    TabButton(
+                        title: tab.rawValue,
+                        isSelected: selectedTab == tab
+                    ) {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            selectedTab = tab
                         }
                     }
                 }
+            }
 
-                Spacer()
+            Spacer()
 
-                // Right side: Context-specific actions
-                HStack(spacing: 8) {
-                    if selectedTab == .library {
-                        libraryActions
-                    } else {
-                        playlistActions
-                    }
+            // Right side: Context-specific actions
+            HStack(spacing: 8) {
+                if selectedTab == .library {
+                    libraryActions
+                } else {
+                    playlistActions
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
         }
+        .padding(.horizontal, 16)
+        .frame(height: TOP_NAV_BAR_HEIGHT)
         .background(Color(UIColor.systemBackground))
     }
 

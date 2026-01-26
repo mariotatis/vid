@@ -5,6 +5,10 @@ enum PlaylistViewStyle: String, CaseIterable {
     case grid = "grid"
 }
 
+// Local constants for PlaylistsView
+private let PLAYLIST_ROW_VERTICAL_PADDING: CGFloat = 12
+private let PLAYLIST_ROW_HORIZONTAL_INSET: CGFloat = 16
+
 struct PlaylistsView: View {
     @ObservedObject var playlistManager: PlaylistManager
     @ObservedObject var videoManager: VideoManager
@@ -40,38 +44,30 @@ struct PlaylistsView: View {
 
     var body: some View {
         NavigationView {
-            GeometryReader { geometry in
-                ZStack(alignment: .top) {
-                    // Content area
-                    Group {
-                        if !hasAnyContent {
-                            emptyStateView
-                        } else if viewStyle == .list {
-                            playlistListView
-                        } else {
-                            playlistGridView
-                        }
-                    }
+            VStack(spacing: 0) {
+                // Top Navigation Bar
+                TopNavigationBar(
+                    selectedTab: $selectedTab,
+                    onAddVideo: onAddVideo,
+                    onToggleSearch: nil,
+                    showingSearch: false,
+                    videosExist: false,
+                    onAddPlaylist: onAddPlaylist,
+                    hasPlaylistContent: hasPlaylistContent,
+                    sortMenuContent: sortMenuContent,
+                    viewStyleMenuContent: viewStyleMenuContent
+                )
 
-                    // Top Navigation Bar
-                    VStack(spacing: 0) {
-                        TopNavigationBar(
-                            selectedTab: $selectedTab,
-                            onAddVideo: onAddVideo,
-                            onToggleSearch: nil,
-                            showingSearch: false,
-                            videosExist: false,
-                            onAddPlaylist: onAddPlaylist,
-                            hasPlaylistContent: hasPlaylistContent,
-                            sortMenuContent: sortMenuContent,
-                            viewStyleMenuContent: viewStyleMenuContent
-                        )
-                        .padding(.top, geometry.safeAreaInsets.top)
-
-                        Spacer()
+                // Content area
+                Group {
+                    if !hasAnyContent {
+                        emptyStateView
+                    } else if viewStyle == .list {
+                        playlistListView
+                    } else {
+                        playlistGridView
                     }
                 }
-                .ignoresSafeArea(edges: .top)
             }
             .navigationBarHidden(true)
         }
@@ -91,50 +87,70 @@ struct PlaylistsView: View {
         List {
             // Liked playlist at the top
             if shouldShowLikedPlaylist {
-                NavigationLink(destination: LikedVideosView(videoManager: videoManager, settings: settings)
-                    .onAppear { isShowingLikedVideos = true }
-                    .onDisappear { isShowingLikedVideos = false }
-                ) {
+                ZStack {
+                    NavigationLink(destination: LikedVideosView(videoManager: videoManager, settings: settings)
+                        .onAppear { isShowingLikedVideos = true }
+                        .onDisappear { isShowingLikedVideos = false }
+                    ) {
+                        EmptyView()
+                    }
+                    .opacity(0)
+
                     HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 4) {
                             Text("Liked")
-                                .font(.subheadline.weight(.bold))
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
                             Text("\(likedVideoCount) videos")
-                                .font(.footnote)
+                                .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.secondary)
                     }
-                    .padding(.vertical, VIDEO_ROW_VERTICAL_PADDING)
+                    .padding(.vertical, PLAYLIST_ROW_VERTICAL_PADDING)
                     .vidFocusHighlight()
                 }
                 .focused($focusedElement, equals: .likedPlaylist)
-                .listRowInsets(EdgeInsets(top: 0, leading: LIST_ROW_HORIZONTAL_INSET, bottom: 0, trailing: LIST_ROW_HORIZONTAL_INSET))
+                .listRowInsets(EdgeInsets(top: 0, leading: PLAYLIST_ROW_HORIZONTAL_INSET, bottom: 0, trailing: PLAYLIST_ROW_HORIZONTAL_INSET))
+                .listRowSeparatorTint(Color.gray.opacity(0.3))
             }
 
             ForEach(playlistManager.playlists) { playlist in
-                NavigationLink(destination: PlaylistDetailView(playlist: playlist, playlistManager: playlistManager, videoManager: videoManager, settings: settings)) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(playlist.name)
-                            .font(.subheadline.weight(.bold))
-                        Text("\(playlist.videoIds.count) videos")
-                            .font(.footnote)
+                ZStack {
+                    NavigationLink(destination: PlaylistDetailView(playlist: playlist, playlistManager: playlistManager, videoManager: videoManager, settings: settings)) {
+                        EmptyView()
+                    }
+                    .opacity(0)
+
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(playlist.name)
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+                            Text("\(playlist.videoIds.count) videos")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.secondary)
                     }
-                    .padding(.vertical, VIDEO_ROW_VERTICAL_PADDING)
+                    .padding(.vertical, PLAYLIST_ROW_VERTICAL_PADDING)
                     .vidFocusHighlight()
                 }
                 .focused($focusedElement, equals: .playlistItem(playlist.id))
-                .listRowInsets(EdgeInsets(top: 0, leading: LIST_ROW_HORIZONTAL_INSET, bottom: 0, trailing: LIST_ROW_HORIZONTAL_INSET))
+                .listRowInsets(EdgeInsets(top: 0, leading: PLAYLIST_ROW_HORIZONTAL_INSET, bottom: 0, trailing: PLAYLIST_ROW_HORIZONTAL_INSET))
+                .listRowSeparatorTint(Color.gray.opacity(0.3))
             }
             .onDelete { indexSet in
                 playlistManager.deletePlaylist(at: indexSet)
             }
         }
         .listStyle(.plain)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            Color.clear.frame(height: TOP_NAV_CONTENT_INSET + PLAYLISTS_LIST_TOP_EXTRA)
-        }
     }
 
     private var playlistGridView: some View {
@@ -165,9 +181,6 @@ struct PlaylistsView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 16)
-        }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            Color.clear.frame(height: TOP_NAV_CONTENT_INSET + PLAYLISTS_LIST_TOP_EXTRA)
         }
     }
 
