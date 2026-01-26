@@ -2,7 +2,9 @@ import SwiftUI
 
 @main
 struct VidApp: App {
-    
+    @State private var isLoading = true
+    @State private var appDidLoad = false
+
     init() {
         // Force Documents folder creation immediately on launch
         let fileManager = FileManager.default
@@ -20,10 +22,27 @@ struct VidApp: App {
              }
         }
     }
-    
+
     var body: some Scene {
         WindowGroup {
-            MainTabView()
+            ZStack {
+                MainTabView(onAppLoaded: {
+                    appDidLoad = true
+                })
+
+                LaunchScreenView()
+                    .opacity(isLoading ? 1 : 0)
+                    .allowsHitTesting(isLoading)
+                    .animation(.easeOut(duration: 0.3), value: isLoading)
+            }
+            .onChange(of: appDidLoad) { loaded in
+                if loaded {
+                    // Wait 2 additional seconds after app loads
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        isLoading = false
+                    }
+                }
+            }
         }
     }
 }

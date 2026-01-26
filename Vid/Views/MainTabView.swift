@@ -7,6 +7,8 @@ struct MainTabView: View {
     @StateObject var playerVM = PlayerViewModel.shared
     @State private var selectedTab: Int = 0
 
+    var onAppLoaded: (() -> Void)?
+
     var body: some View {
         TabView(selection: $selectedTab) {
             AllVideosView(videoManager: videoManager, settings: settingsStore)
@@ -28,6 +30,7 @@ struct MainTabView: View {
                 .environmentObject(settingsStore)
         }
         .onAppear {
+            onAppLoaded?()
             autoPlayLastContext()
             donateGenericActivities()
         }

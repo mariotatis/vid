@@ -307,97 +307,124 @@ struct PlayerView: View {
 
     @ViewBuilder
     func EqualizerOverlay() -> some View {
-        VStack(spacing: 15) {
-            // Removed header with 'X' button
-            Spacer()
-                .frame(height: 15)
-
-            // Preamp Slider
-            VStack(spacing: 4) {
-                HStack {
-                    Text("Preamp")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                    Spacer()
-                    let db = (settings.preampValue - 0.5) * 30
-                    Text(String(format: "%+.1f dB", db))
-                        .font(.caption.monospacedDigit())
-                        .foregroundColor(.white)
-                }
-                .padding(.horizontal)
-                
-                ZStack {
-                    // Background track
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.gray.opacity(0.6))
-                        .frame(height: 4)
-                        .padding(.horizontal)
-
-                    Slider(value: $settings.preampValue, in: 0...1) { editing in
-                        isDraggingSlider = editing
-                        if !editing {
-                            resetControlTimer()
-                        } else {
-                            controlHideTimer?.invalidate()
-                        }
-                    }
-                    .accentColor(.white)
-                    .padding(.horizontal)
-                }
-                .vidFocusHighlight()
-                .focused($focusedElement, equals: .eqPreamp)
+        VStack(spacing: 8) {
+            // Reset button on top, aligned right
+            HStack {
+                Spacer()
+                resetEQButton
             }
-            
-            // Custom Vertical Sliders
-            HStack(spacing: 20) {
-                ForEach(0..<6) { index in
-                    VStack {
-                        if #available(iOS 16.0, *) {
-                           NativeVerticalSlider(value: binding(for: index)) { editing in
-                               isDraggingSlider = editing
-                               if !editing {
-                                   resetControlTimer()
-                               } else {
-                                   controlHideTimer?.invalidate()
-                               }
-                           }
-                           .frame(height: 120)
-                        } else {
-                           VerticalSlider(value: binding(for: index)) { editing in
-                               isDraggingSlider = editing
-                               if !editing {
-                                   resetControlTimer()
-                               } else {
-                                   controlHideTimer?.invalidate()
-                               }
-                           }
-                           .frame(height: 120)
-                        }
-                        
-                        Text(frequencies[index])
-                            .font(.caption2)
+            .padding(.horizontal)
+
+            // Equalizer content
+            VStack(spacing: 15) {
+                Spacer()
+                    .frame(height: 15)
+
+                // Preamp Slider
+                VStack(spacing: 4) {
+                    HStack {
+                        Text("Preamp")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Spacer()
+                        let db = (settings.preampValue - 0.5) * 30
+                        Text(String(format: "%+.1f dB", db))
+                            .font(.caption.monospacedDigit())
                             .foregroundColor(.white)
-                            .fixedSize()
+                    }
+                    .padding(.horizontal)
+
+                    ZStack {
+                        // Background track
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color.gray.opacity(0.6))
+                            .frame(height: 4)
+                            .padding(.horizontal)
+
+                        Slider(value: $settings.preampValue, in: 0...1) { editing in
+                            isDraggingSlider = editing
+                            if !editing {
+                                resetControlTimer()
+                            } else {
+                                controlHideTimer?.invalidate()
+                            }
+                        }
+                        .accentColor(.white)
+                        .padding(.horizontal)
                     }
                     .vidFocusHighlight()
-                    .focused($focusedElement, equals: .eqBand(index))
+                    .focused($focusedElement, equals: .eqPreamp)
                 }
+
+                // Custom Vertical Sliders
+                HStack(spacing: 20) {
+                    ForEach(0..<6) { index in
+                        VStack {
+                            if #available(iOS 16.0, *) {
+                               NativeVerticalSlider(value: binding(for: index)) { editing in
+                                   isDraggingSlider = editing
+                                   if !editing {
+                                       resetControlTimer()
+                                   } else {
+                                       controlHideTimer?.invalidate()
+                                   }
+                               }
+                               .frame(height: 120)
+                            } else {
+                               VerticalSlider(value: binding(for: index)) { editing in
+                                   isDraggingSlider = editing
+                                   if !editing {
+                                       resetControlTimer()
+                                   } else {
+                                       controlHideTimer?.invalidate()
+                                   }
+                               }
+                               .frame(height: 120)
+                            }
+
+                            Text(frequencies[index])
+                                .font(.caption2)
+                                .foregroundColor(.white)
+                                .fixedSize()
+                        }
+                        .vidFocusHighlight()
+                        .focused($focusedElement, equals: .eqBand(index))
+                    }
+                }
+                .padding()
+
+                Spacer()
+                    .frame(height: 10)
             }
-            .padding()
-            
-            Button("Reset EQ") {
-                settings.eqValues = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
-                settings.preampValue = 0.5
-            }
-            .buttonStyle(VidButtonStyle())
-            .focused($focusedElement, equals: .eqReset)
+            .background(Color.black.opacity(0.7))
+            .cornerRadius(20)
         }
-        .background(Color.black.opacity(0.7))
-        .cornerRadius(20)
         .padding()
         .onTapGesture {
             // Swallows taps to prevent closing the EQ when tapping on the background
         }
+    }
+
+    @ViewBuilder
+    private var resetEQButton: some View {
+        Button(action: {
+            settings.eqValues = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+            settings.preampValue = 0.5
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.system(size: 16, weight: .semibold))
+                Text("Reset EQ")
+                    .font(.headline)
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+            .modifier(ResetButtonStyle())
+        }
+        .buttonStyle(.plain)
+        .vidFocusHighlight()
+        .focused($focusedElement, equals: .eqReset)
     }
     
     private func binding(for index: Int) -> Binding<Double> {
@@ -523,6 +550,20 @@ extension View {
             transform(self)
         } else {
             self
+        }
+    }
+}
+
+struct ResetButtonStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .glassEffect(.regular.tint(.white.opacity(0.1)))
+                .cornerRadius(12)
+        } else {
+            content
+                .background(Color(white: 0.25))
+                .cornerRadius(12)
         }
     }
 }
