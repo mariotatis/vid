@@ -57,8 +57,7 @@ struct VideoListView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 8)
+                        .padding(.vertical, 12)
                         .background(focusedElement.wrappedValue == .videoItem(video.id) ? Color.blue.opacity(0.15) : Color.clear)
                         .cornerRadius(8)
                         .vidFocusHighlight()

@@ -10,8 +10,14 @@ struct PlaylistsView: View {
     @ObservedObject var videoManager: VideoManager
     @ObservedObject var settings: SettingsStore
 
-    @State private var showCreatePlaylist = false
-    @State private var newPlaylistName = ""
+    @Binding var selectedTab: NavigationTab
+
+    var onAddVideo: (() -> Void)?
+    var onAddPlaylist: (() -> Void)?
+    var hasPlaylistContent: Bool = false
+    var sortMenuContent: (() -> AnyView)?
+    var viewStyleMenuContent: (() -> AnyView)?
+
     @AppStorage("playlistViewStyle") private var viewStyle: PlaylistViewStyle = .grid
     @FocusState private var focusedElement: AppFocus?
     @State private var isShowingLikedVideos = false
@@ -34,55 +40,40 @@ struct PlaylistsView: View {
 
     var body: some View {
         NavigationView {
-            Group {
-                if !hasAnyContent {
-                    emptyStateView
-                } else if viewStyle == .list {
-                    playlistListView
-                } else {
-                    playlistGridView
-                }
-            }
-            .navigationTitle("Playlists")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack(spacing: 8) {
-                        Button(action: {
-                            newPlaylistName = ""
-                            showCreatePlaylist = true
-                        }) {
-                            Image(systemName: "plus")
-                                .foregroundColor(Color.primary)
+            GeometryReader { geometry in
+                ZStack(alignment: .top) {
+                    // Content area
+                    Group {
+                        if !hasAnyContent {
+                            emptyStateView
+                        } else if viewStyle == .list {
+                            playlistListView
+                        } else {
+                            playlistGridView
                         }
-                        .buttonStyle(VidButtonStyle())
-                        .focused($focusedElement, equals: .search)
+                    }
 
-                        if hasAnyContent {
-                            Menu {
-                                Button(action: { viewStyle = .list }) {
-                                    Label("List View", systemImage: viewStyle == .list ? "checkmark" : "")
-                                }
-                                Button(action: { viewStyle = .grid }) {
-                                    Label("Grid View", systemImage: viewStyle == .grid ? "checkmark" : "")
-                                }
-                            } label: {
-                                Image(systemName: "ellipsis.circle")
-                                    .foregroundColor(Color.primary)
-                            }
-                            .buttonStyle(VidButtonStyle())
-                        }
+                    // Top Navigation Bar
+                    VStack(spacing: 0) {
+                        TopNavigationBar(
+                            selectedTab: $selectedTab,
+                            onAddVideo: onAddVideo,
+                            onToggleSearch: nil,
+                            showingSearch: false,
+                            videosExist: false,
+                            onAddPlaylist: onAddPlaylist,
+                            hasPlaylistContent: hasPlaylistContent,
+                            sortMenuContent: sortMenuContent,
+                            viewStyleMenuContent: viewStyleMenuContent
+                        )
+                        .padding(.top, geometry.safeAreaInsets.top)
+
+                        Spacer()
                     }
                 }
+                .ignoresSafeArea(edges: .top)
             }
-            .alert("New Playlist", isPresented: $showCreatePlaylist) {
-                TextField("Name", text: $newPlaylistName)
-                Button("Cancel", role: .cancel) { }
-                Button("Create") {
-                    if !newPlaylistName.isEmpty {
-                        playlistManager.createPlaylist(name: newPlaylistName)
-                    }
-                }
-            }
+            .navigationBarHidden(true)
         }
         .navigationViewStyle(.stack)
         .onAppear {
@@ -105,38 +96,45 @@ struct PlaylistsView: View {
                     .onDisappear { isShowingLikedVideos = false }
                 ) {
                     HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: 6) {
                             Text("Liked")
-                                .font(.headline)
+                                .font(.subheadline.weight(.bold))
                             Text("\(likedVideoCount) videos")
-                                .font(.subheadline)
+                                .font(.footnote)
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
                     }
+                    .padding(.vertical, 12)
                     .vidFocusHighlight()
                 }
                 .focused($focusedElement, equals: .likedPlaylist)
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
             }
 
             ForEach(playlistManager.playlists) { playlist in
                 NavigationLink(destination: PlaylistDetailView(playlist: playlist, playlistManager: playlistManager, videoManager: videoManager, settings: settings)) {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text(playlist.name)
-                            .font(.headline)
+                            .font(.subheadline.weight(.bold))
                         Text("\(playlist.videoIds.count) videos")
-                            .font(.subheadline)
+                            .font(.footnote)
                             .foregroundColor(.secondary)
                     }
+                    .padding(.vertical, 12)
                     .vidFocusHighlight()
                 }
                 .focused($focusedElement, equals: .playlistItem(playlist.id))
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
             }
             .onDelete { indexSet in
                 playlistManager.deletePlaylist(at: indexSet)
             }
         }
         .listStyle(.plain)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Color.clear.frame(height: 133)
+        }
     }
 
     private var playlistGridView: some View {
@@ -165,7 +163,11 @@ struct PlaylistsView: View {
                     .focused($focusedElement, equals: .playlistItem(playlist.id))
                 }
             }
-            .padding()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 16)
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Color.clear.frame(height: 133)
         }
     }
 
@@ -210,25 +212,10 @@ struct PlaylistsView: View {
                     .padding(.horizontal, 40)
             }
 
-            // Action button
-            Button(action: {
-                newPlaylistName = ""
-                showCreatePlaylist = true
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: 16, weight: .semibold))
-                    Text("Create Playlist")
-                        .font(.headline)
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 14)
-                .background(Color(white: 0.25))
-                .cornerRadius(12)
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 8)
+            // Note: The create button is now in the top navigation bar
+            Text("Tap + in the top bar to create a playlist")
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

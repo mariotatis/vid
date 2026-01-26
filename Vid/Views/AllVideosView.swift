@@ -9,28 +9,30 @@ struct AllVideosView: View {
     @ObservedObject var playlistManager = PlaylistManager.shared
     @Environment(\.scenePhase) private var scenePhase
 
-    @State private var showFileImporter = false
-    @State private var sortOption: SortOption = .name
-    @State private var sortAscending: Bool = true
+    @Binding var selectedTab: NavigationTab
+    @Binding var showSearch: Bool
+
+    var onAddVideo: (() -> Void)?
+    var onAddPlaylist: (() -> Void)?
+    var hasPlaylistContent: Bool = false
+    var sortMenuContent: (() -> AnyView)?
+    var viewStyleMenuContent: (() -> AnyView)?
+
+    @AppStorage("librarySortOption") private var sortOptionRaw: String = "name"
+    @AppStorage("librarySortAscending") private var sortAscending: Bool = true
+    @AppStorage("libraryShowThumbnails") private var showThumbnails: Bool = true
+
     @State private var searchText = ""
-    @State private var showSearch = false
-    @State private var showThumbnails = true
     @FocusState private var focusedElement: AppFocus?
 
-    enum SortOption {
+    private var sortOption: SortOption {
+        SortOption(rawValue: sortOptionRaw) ?? .name
+    }
+
+    enum SortOption: String {
         case name, duration, recent, size, mostWatched
     }
 
-    // Default order per sort option
-    private func defaultOrder(for option: SortOption) -> Bool {
-        switch option {
-        case .name:
-            return true // Ascending
-        case .duration, .recent, .size, .mostWatched:
-            return false // Descending
-        }
-    }
-    
     var filteredVideos: [Video] {
         if searchText.isEmpty {
             return videoManager.videos
@@ -42,7 +44,7 @@ struct AllVideosView: View {
             }
         }
     }
-    
+
     var sortedVideos: [Video] {
         return filteredVideos.sorted { v1, v2 in
             switch sortOption {
@@ -62,202 +64,59 @@ struct AllVideosView: View {
             }
         }
     }
-    
+
     var body: some View {
-        NavigationView {
-            Group {
-                if videoManager.isLoading {
-                    ProgressView("Loading videos...")
-                } else if videoManager.videos.isEmpty {
-                    VStack(spacing: 24) {
-                        // Icon with shadow
-                        ZStack(alignment: .bottomTrailing) {
-                            RoundedRectangle(cornerRadius: 20)
-                                .fill(Color.gray.opacity(0.15))
-                                .frame(width: 120, height: 120)
-                                .overlay(
-                                    Image(systemName: "play.rectangle.on.rectangle")
-                                        .font(.system(size: 44, weight: .medium))
-                                        .foregroundColor(Color.gray.opacity(0.6))
-                                )
-                                .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
-
-                            // Plus badge
-                            Circle()
-                                .fill(Color(UIColor.systemBackground))
-                                .frame(width: 44, height: 44)
-                                .overlay(
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 32))
-                                        .foregroundColor(Color.gray.opacity(0.7))
-                                )
-                                .offset(x: 8, y: 8)
-                        }
-                        .padding(.bottom, 8)
-
-                        // Text content
-                        VStack(spacing: 12) {
-                            Text("Your library is quiet")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.primary)
-
-                            Text("Import your favorite movies and clips to watch them offline anytime, anywhere.")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 40)
-                        }
-
-                        // Action button
-                        Button(action: {
-                            showFileImporter = true
-                        }) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "arrow.down.circle")
-                                    .font(.system(size: 16, weight: .semibold))
-                                Text("Import Videos")
-                                    .font(.headline)
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 14)
-                            .background(Color(white: 0.25))
-                            .cornerRadius(12)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.top, 8)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                VideoListView(videos: sortedVideos, showThumbnails: showThumbnails, focusedElement: $focusedElement, onDelete: { offsets in deleteVideo(at: offsets) }, onPlay: { video in
-                    settings.lastContextType = "all"
-                    settings.lastPlaylistId = ""
-                    playerVM.play(video: video, from: sortedVideos, settings: settings)
-                })
-                }
-            }
-            .navigationTitle("Library")
-            .if(showSearch) { view in
-                view.searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search videos")
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        print("Vid: Plus button tapped")
-                        showFileImporter = true
-                    }) {
-                        Image(systemName: "plus")
-                            .foregroundColor(Color.primary)
-                    }
-                    .buttonStyle(VidButtonStyle())
-                    .focused($focusedElement, equals: .search)
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if !videoManager.videos.isEmpty {
-                        HStack(spacing: 8) {
-                            Button(action: {
-                                withAnimation {
-                                    showSearch.toggle()
-                                    if !showSearch {
-                                        searchText = ""
-                                    }
-                                }
-                            }) {
-                                Image(systemName: showSearch ? "xmark" : "magnifyingglass")
-                                    .foregroundColor(Color.primary)
-                            }
-                            .buttonStyle(VidButtonStyle())
-
-                            Menu {
-                            Section {
-                                Button(action: {
-                                    sortOption = .name
-                                    sortAscending = defaultOrder(for: .name)
-                                }) {
-                                    Label("Name", systemImage: sortOption == .name ? "checkmark" : "")
-                                }
-
-                                Button(action: {
-                                    sortOption = .duration
-                                    sortAscending = defaultOrder(for: .duration)
-                                }) {
-                                    Label("Duration", systemImage: sortOption == .duration ? "checkmark" : "")
-                                }
-
-                                Button(action: {
-                                    sortOption = .recent
-                                    sortAscending = defaultOrder(for: .recent)
-                                }) {
-                                    Label("Recent", systemImage: sortOption == .recent ? "checkmark" : "")
-                                }
-
-                                Button(action: {
-                                    sortOption = .size
-                                    sortAscending = defaultOrder(for: .size)
-                                }) {
-                                    Label("Size", systemImage: sortOption == .size ? "checkmark" : "")
-                                }
-
-                                Button(action: {
-                                    sortOption = .mostWatched
-                                    sortAscending = defaultOrder(for: .mostWatched)
-                                }) {
-                                    Label("Most Watched", systemImage: sortOption == .mostWatched ? "checkmark" : "")
-                                }
-                            }
-
-                            Divider()
-
-                            Section {
-                                Button(action: { sortAscending = true }) {
-                                    Label("Ascending", systemImage: sortAscending ? "checkmark" : "")
-                                }
-                                Button(action: { sortAscending = false }) {
-                                    Label("Descending", systemImage: !sortAscending ? "checkmark" : "")
-                                }
-                            }
-
-                            Divider()
-
-                            Button(action: { showThumbnails.toggle() }) {
-                                Label("Show Thumbnails", systemImage: showThumbnails ? "checkmark" : "")
-                            }
-
-                            Divider()
-
-                            Button(action: { settings.autoplayOnAppOpen.toggle() }) {
-                                Label("Autoplay on App Open", systemImage: settings.autoplayOnAppOpen ? "checkmark" : "")
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis.circle")
-                                .foregroundColor(Color.primary)
-                                .vidFocusHighlight()
-                        }
-                        .focused($focusedElement, equals: .sort)
+        GeometryReader { geometry in
+            ZStack(alignment: .top) {
+                // Content area
+                NavigationView {
+                    Group {
+                        if videoManager.isLoading {
+                            ProgressView("Loading videos...")
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else if videoManager.videos.isEmpty {
+                            emptyStateView
+                        } else {
+                            videoListContent
                         }
                     }
+                    .navigationBarHidden(true)
+                }
+                .navigationViewStyle(.stack)
+
+                // Top Navigation Bar
+                VStack(spacing: 0) {
+                    TopNavigationBar(
+                        selectedTab: $selectedTab,
+                        onAddVideo: onAddVideo,
+                        onToggleSearch: {
+                            withAnimation {
+                                showSearch.toggle()
+                            }
+                        },
+                        showingSearch: showSearch,
+                        videosExist: !videoManager.videos.isEmpty,
+                        onAddPlaylist: onAddPlaylist,
+                        hasPlaylistContent: hasPlaylistContent,
+                        sortMenuContent: sortMenuContent,
+                        viewStyleMenuContent: viewStyleMenuContent
+                    )
+                    .padding(.top, geometry.safeAreaInsets.top)
+
+                    Spacer()
                 }
             }
-
-
+            .ignoresSafeArea(edges: .top)
         }
-        .navigationViewStyle(.stack)
-        .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [UTType.movie], allowsMultipleSelection: true) { result in
-            switch result {
-            case .success(let urls):
-                print("Vid: Files imported: \(urls)")
-                videoManager.importFiles(urls)
-            case .failure(let error):
-                print("Vid: Error importing files: \(error.localizedDescription)")
+        .onChange(of: showSearch) { newValue in
+            if !newValue {
+                searchText = ""
             }
         }
         .onAppear {
             if videoManager.videos.isEmpty {
                 videoManager.loadVideos()
             }
-            // Set initial focus
             if focusedElement == nil {
                 if let firstId = sortedVideos.first?.id {
                     focusedElement = .videoItem(firstId)
@@ -270,7 +129,103 @@ struct AllVideosView: View {
             }
         }
     }
-    
+
+    @ViewBuilder
+    private var videoListContent: some View {
+        VStack(spacing: 0) {
+            if showSearch {
+                searchBar
+                    .padding(.top, 64)
+            }
+
+            VideoListView(
+                videos: sortedVideos,
+                showThumbnails: showThumbnails,
+                focusedElement: $focusedElement,
+                onDelete: { offsets in deleteVideo(at: offsets) },
+                onPlay: { video in
+                    settings.lastContextType = "all"
+                    settings.lastPlaylistId = ""
+                    playerVM.play(video: video, from: sortedVideos, settings: settings)
+                }
+            )
+            .safeAreaInset(edge: .top, spacing: 0) {
+                Color.clear.frame(height: showSearch ? 0 : 64)
+            }
+        }
+    }
+
+    private var searchBar: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.secondary)
+
+            TextField("Search videos", text: $searchText)
+                .textFieldStyle(.plain)
+
+            if !searchText.isEmpty {
+                Button(action: { searchText = "" }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(12)
+        .background(Color(.systemGray6))
+        .cornerRadius(10)
+        .padding(.horizontal)
+        .padding(.bottom, 8)
+    }
+
+    private var emptyStateView: some View {
+        VStack(spacing: 24) {
+            // Icon with shadow
+            ZStack(alignment: .bottomTrailing) {
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.gray.opacity(0.15))
+                    .frame(width: 120, height: 120)
+                    .overlay(
+                        Image(systemName: "play.rectangle.on.rectangle")
+                            .font(.system(size: 44, weight: .medium))
+                            .foregroundColor(Color.gray.opacity(0.6))
+                    )
+                    .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
+
+                // Plus badge
+                Circle()
+                    .fill(Color(UIColor.systemBackground))
+                    .frame(width: 44, height: 44)
+                    .overlay(
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 32))
+                            .foregroundColor(Color.gray.opacity(0.7))
+                    )
+                    .offset(x: 8, y: 8)
+            }
+            .padding(.bottom, 8)
+
+            // Text content
+            VStack(spacing: 12) {
+                Text("Your library is quiet")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+
+                Text("Import your favorite movies and clips to watch them offline anytime, anywhere.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
+
+            // Note: The import button is now in the top navigation bar
+            Text("Tap + in the top bar to import videos")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     func deleteVideo(at offsets: IndexSet) {
         // Map offsets to actual videos first (since we're working with a sorted list)
         let videosToRemove = offsets.map { sortedVideos[$0] }

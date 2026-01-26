@@ -6,6 +6,7 @@ struct PlaylistDetailView: View {
     @ObservedObject var videoManager: VideoManager
     @EnvironmentObject var playerVM: PlayerViewModel
     @ObservedObject var settings: SettingsStore
+    @Environment(\.presentationMode) private var presentationMode
     @FocusState private var focusedElement: AppFocus?
 
     @State private var sortOption: SortOption = .name
@@ -19,19 +20,14 @@ struct PlaylistDetailView: View {
         case name, duration, recent, size, mostWatched
     }
 
-    // Default order per sort option
     private func defaultOrder(for option: SortOption) -> Bool {
         switch option {
         case .name:
-            return true // Ascending
+            return true
         case .duration, .recent, .size, .mostWatched:
-            return false // Descending
+            return false
         }
     }
-
-    // We need to resolve videoIds to Video objects.
-    // Since Playlist is a Struct (value type), and we want to know when it updates (though the list passed in is static value).
-    // We rely on `playlistManager` updates. We need to find the current playlist in the manager.
 
     var livePlaylist: Playlist {
         playlistManager.playlists.first(where: { $0.id == playlist.id }) ?? playlist
@@ -74,166 +70,27 @@ struct PlaylistDetailView: View {
             }
         }
     }
-    
+
     var body: some View {
-        Group {
-            if resolvedVideos.isEmpty {
-                VStack(spacing: 24) {
-                    // Icon with shadow
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Color.gray.opacity(0.15))
-                        .frame(width: 120, height: 120)
-                        .overlay(
-                            Image(systemName: "text.badge.plus")
-                                .font(.system(size: 44, weight: .medium))
-                                .foregroundColor(Color.gray.opacity(0.6))
-                        )
-                        .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
-                        .padding(.bottom, 8)
-
-                    // Text content
-                    VStack(spacing: 12) {
-                        Text("This playlist is empty")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
-
-                        Text("Add videos from your library to start building this playlist.")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 40)
-                    }
-
-                    // Action button
-                    Button(action: {
-                        showAddVideos = true
-                    }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "plus.circle")
-                                .font(.system(size: 16, weight: .semibold))
-                            Text("Add Videos")
-                                .font(.headline)
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 14)
-                        .background(Color(white: 0.25))
-                        .cornerRadius(12)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, 8)
-                }
+        ZStack(alignment: .top) {
+            // Content
+            contentView
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                VideoListView(videos: sortedVideos, showThumbnails: showThumbnails, focusedElement: $focusedElement, onDelete: { offsets in deleteVideo(at: offsets) }, onPlay: { video in
-                    settings.lastContextType = "playlist"
-                    settings.lastPlaylistId = playlist.id.uuidString
-                    playerVM.play(video: video, from: sortedVideos, settings: settings)
-                })
+
+            // Top Navigation Bar
+            VStack(spacing: 0) {
+                DetailNavigationBar(
+                    title: livePlaylist.name,
+                    onBack: { presentationMode.wrappedValue.dismiss() },
+                    trailingContent: { AnyView(trailingButtons) }
+                )
+
+                Spacer()
             }
         }
-        .navigationTitle(livePlaylist.name)
-        .if(showSearch) { view in
-            view.searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search videos")
-        }
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                HStack(spacing: 8) {
-                    if !resolvedVideos.isEmpty {
-                        Button(action: {
-                            withAnimation {
-                                showSearch.toggle()
-                                if !showSearch {
-                                    searchText = ""
-                                }
-                            }
-                        }) {
-                            Image(systemName: showSearch ? "xmark" : "magnifyingglass")
-                                .foregroundColor(Color.primary)
-                        }
-                        .buttonStyle(VidButtonStyle())
-
-                        Menu {
-                        Section {
-                            Button(action: {
-                                sortOption = .name
-                                sortAscending = defaultOrder(for: .name)
-                            }) {
-                                Label("Name", systemImage: sortOption == .name ? "checkmark" : "")
-                            }
-
-                            Button(action: {
-                                sortOption = .duration
-                                sortAscending = defaultOrder(for: .duration)
-                            }) {
-                                Label("Duration", systemImage: sortOption == .duration ? "checkmark" : "")
-                            }
-
-                            Button(action: {
-                                sortOption = .recent
-                                sortAscending = defaultOrder(for: .recent)
-                            }) {
-                                Label("Recent", systemImage: sortOption == .recent ? "checkmark" : "")
-                            }
-
-                            Button(action: {
-                                sortOption = .size
-                                sortAscending = defaultOrder(for: .size)
-                            }) {
-                                Label("Size", systemImage: sortOption == .size ? "checkmark" : "")
-                            }
-
-                            Button(action: {
-                                sortOption = .mostWatched
-                                sortAscending = defaultOrder(for: .mostWatched)
-                            }) {
-                                Label("Most Watched", systemImage: sortOption == .mostWatched ? "checkmark" : "")
-                            }
-                        }
-
-                        Divider()
-
-                        Section {
-                            Button(action: { sortAscending = true }) {
-                                Label("Ascending", systemImage: sortAscending ? "checkmark" : "")
-                            }
-                            Button(action: { sortAscending = false }) {
-                                Label("Descending", systemImage: !sortAscending ? "checkmark" : "")
-                            }
-                        }
-
-                        Divider()
-
-                        Button(action: { showThumbnails.toggle() }) {
-                            Label("Show Thumbnails", systemImage: showThumbnails ? "checkmark" : "")
-                        }
-
-                        Divider()
-
-                        Button(action: { settings.autoplayOnAppOpen.toggle() }) {
-                            Label("Autoplay on App Open", systemImage: settings.autoplayOnAppOpen ? "checkmark" : "")
-                        }
-                        } label: {
-                            Image(systemName: "ellipsis.circle")
-                                .foregroundColor(Color.primary)
-                                .vidFocusHighlight()
-                        }
-                        .focused($focusedElement, equals: .sort)
-                    }
-
-                    Button(action: {
-                        showAddVideos = true
-                    }) {
-                        Image(systemName: "plus")
-                            .foregroundColor(Color.primary)
-                            .vidFocusHighlight()
-                    }
-                    .buttonStyle(VidButtonStyle())
-                    .focused($focusedElement, equals: .search)
-                }
-            }
-        }
+        .navigationBarTitle("", displayMode: .inline)
+        .navigationBarHidden(true)
+        .navigationBarBackButtonHidden(true)
         .fullScreenCover(isPresented: $showAddVideos) {
             AddVideosToPlaylistView(playlistId: playlist.id, videoManager: videoManager, playlistManager: playlistManager)
         }
@@ -245,7 +102,200 @@ struct PlaylistDetailView: View {
             }
         }
     }
-    
+
+    @ViewBuilder
+    private var contentView: some View {
+        Group {
+            if resolvedVideos.isEmpty {
+                emptyStateView
+            } else {
+                videoListContent
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var videoListContent: some View {
+        VStack(spacing: 0) {
+            if showSearch {
+                searchBar
+                    .padding(.top, 64)
+            }
+
+            VideoListView(
+                videos: sortedVideos,
+                showThumbnails: showThumbnails,
+                focusedElement: $focusedElement,
+                onDelete: { offsets in deleteVideo(at: offsets) },
+                onPlay: { video in
+                    settings.lastContextType = "playlist"
+                    settings.lastPlaylistId = playlist.id.uuidString
+                    playerVM.play(video: video, from: sortedVideos, settings: settings)
+                }
+            )
+            .safeAreaInset(edge: .top, spacing: 0) {
+                Color.clear.frame(height: showSearch ? 0 : 64)
+            }
+        }
+    }
+
+    private var searchBar: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.secondary)
+
+            TextField("Search videos", text: $searchText)
+                .textFieldStyle(.plain)
+
+            if !searchText.isEmpty {
+                Button(action: { searchText = "" }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(12)
+        .background(Color(.systemGray6))
+        .cornerRadius(10)
+        .padding(.horizontal)
+        .padding(.bottom, 8)
+    }
+
+    private var emptyStateView: some View {
+        VStack(spacing: 24) {
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.gray.opacity(0.15))
+                .frame(width: 120, height: 120)
+                .overlay(
+                    Image(systemName: "text.badge.plus")
+                        .font(.system(size: 44, weight: .medium))
+                        .foregroundColor(Color.gray.opacity(0.6))
+                )
+                .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
+                .padding(.bottom, 8)
+
+            VStack(spacing: 12) {
+                Text("This playlist is empty")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+
+                Text("Add videos from your library to start building this playlist.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
+
+            Button(action: {
+                showAddVideos = true
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle")
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("Add Videos")
+                        .font(.headline)
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 14)
+                .background(Color(white: 0.25))
+                .cornerRadius(12)
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 8)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private var trailingButtons: some View {
+        HStack(spacing: 8) {
+            if !resolvedVideos.isEmpty {
+                Button(action: {
+                    withAnimation {
+                        showSearch.toggle()
+                        if !showSearch {
+                            searchText = ""
+                        }
+                    }
+                }) {
+                    Image(systemName: showSearch ? "xmark" : "magnifyingglass")
+                        .foregroundColor(.primary)
+                }
+                .buttonStyle(NavButtonStyle())
+
+                Menu {
+                    Section {
+                        Button(action: {
+                            sortOption = .name
+                            sortAscending = defaultOrder(for: .name)
+                        }) {
+                            Label("Name", systemImage: sortOption == .name ? "checkmark" : "")
+                        }
+
+                        Button(action: {
+                            sortOption = .duration
+                            sortAscending = defaultOrder(for: .duration)
+                        }) {
+                            Label("Duration", systemImage: sortOption == .duration ? "checkmark" : "")
+                        }
+
+                        Button(action: {
+                            sortOption = .recent
+                            sortAscending = defaultOrder(for: .recent)
+                        }) {
+                            Label("Recent", systemImage: sortOption == .recent ? "checkmark" : "")
+                        }
+
+                        Button(action: {
+                            sortOption = .size
+                            sortAscending = defaultOrder(for: .size)
+                        }) {
+                            Label("Size", systemImage: sortOption == .size ? "checkmark" : "")
+                        }
+
+                        Button(action: {
+                            sortOption = .mostWatched
+                            sortAscending = defaultOrder(for: .mostWatched)
+                        }) {
+                            Label("Most Watched", systemImage: sortOption == .mostWatched ? "checkmark" : "")
+                        }
+                    }
+
+                    Divider()
+
+                    Section {
+                        Button(action: { sortAscending = true }) {
+                            Label("Ascending", systemImage: sortAscending ? "checkmark" : "")
+                        }
+                        Button(action: { sortAscending = false }) {
+                            Label("Descending", systemImage: !sortAscending ? "checkmark" : "")
+                        }
+                    }
+
+                    Divider()
+
+                    Button(action: { showThumbnails.toggle() }) {
+                        Label("Show Thumbnails", systemImage: showThumbnails ? "checkmark" : "")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .foregroundColor(.primary)
+                }
+                .buttonStyle(NavButtonStyle())
+            }
+
+            Button(action: {
+                showAddVideos = true
+            }) {
+                Image(systemName: "plus")
+                    .foregroundColor(.primary)
+            }
+            .buttonStyle(NavButtonStyle())
+        }
+    }
+
     func deleteVideo(at offsets: IndexSet) {
         let idsToRemove = offsets.map { sortedVideos[$0].id }
         for id in idsToRemove {

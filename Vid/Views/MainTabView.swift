@@ -1,33 +1,47 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct MainTabView: View {
     @StateObject var videoManager = VideoManager.shared
     @StateObject var playlistManager = PlaylistManager.shared
     @StateObject var settingsStore = SettingsStore.shared
     @StateObject var playerVM = PlayerViewModel.shared
-    @State private var selectedTab: Int = 0
+    @State private var selectedTab: NavigationTab = .library
+
+    // Library state
+    @State private var showFileImporter = false
+    @State private var showSearch = false
+
+    // Playlist state
+    @State private var showCreatePlaylist = false
 
     var onAppLoaded: (() -> Void)?
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            AllVideosView(videoManager: videoManager, settings: settingsStore)
-                .tabItem {
-                    Label("Library", systemImage: "play.rectangle.on.rectangle")
-                }
-                .tag(0)
-
-            PlaylistsView(playlistManager: playlistManager, videoManager: videoManager, settings: settingsStore)
-                .tabItem {
-                    Label("Playlists", systemImage: "music.note.list")
-                }
-                .tag(1)
-        }
+        contentView
         .environmentObject(playerVM)
         .fullScreenCover(isPresented: $playerVM.showPlayer) {
             PlayerView()
                 .environmentObject(playerVM)
                 .environmentObject(settingsStore)
+        }
+        .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.movie], allowsMultipleSelection: true) { result in
+            switch result {
+            case .success(let urls):
+                videoManager.importFiles(urls)
+            case .failure(let error):
+                print("Vid: Error importing files: \(error.localizedDescription)")
+            }
+        }
+        .alert("New Playlist", isPresented: $showCreatePlaylist) {
+            TextField("Name", text: $newPlaylistName)
+            Button("Cancel", role: .cancel) { }
+            Button("Create") {
+                if !newPlaylistName.isEmpty {
+                    playlistManager.createPlaylist(name: newPlaylistName)
+                    newPlaylistName = ""
+                }
+            }
         }
         .onAppear {
             onAppLoaded?()
@@ -38,11 +52,113 @@ struct MainTabView: View {
             handlePlayPlaylistActivity(activity)
         }
     }
-    
+
+    @State private var newPlaylistName = ""
+
+    private var hasPlaylistContent: Bool {
+        !settingsStore.likedVideoIds.isEmpty || !playlistManager.playlists.isEmpty
+    }
+
+    @ViewBuilder
+    private var contentView: some View {
+        switch selectedTab {
+        case .library:
+            AllVideosView(
+                videoManager: videoManager,
+                settings: settingsStore,
+                selectedTab: $selectedTab,
+                showSearch: $showSearch,
+                onAddVideo: { showFileImporter = true },
+                onAddPlaylist: { showCreatePlaylist = true },
+                hasPlaylistContent: hasPlaylistContent,
+                sortMenuContent: { AnyView(librarySortMenu) },
+                viewStyleMenuContent: { AnyView(playlistViewMenu) }
+            )
+        case .playlists:
+            PlaylistsView(
+                playlistManager: playlistManager,
+                videoManager: videoManager,
+                settings: settingsStore,
+                selectedTab: $selectedTab,
+                onAddVideo: { showFileImporter = true },
+                onAddPlaylist: { showCreatePlaylist = true },
+                hasPlaylistContent: hasPlaylistContent,
+                sortMenuContent: { AnyView(librarySortMenu) },
+                viewStyleMenuContent: { AnyView(playlistViewMenu) }
+            )
+        }
+    }
+
+    // MARK: - Sort Menu for Library
+
+    @AppStorage("librarySortOption") private var sortOptionRaw: String = "name"
+    @AppStorage("librarySortAscending") private var sortAscending: Bool = true
+    @AppStorage("libraryShowThumbnails") private var showThumbnails: Bool = true
+
+    @ViewBuilder
+    private var librarySortMenu: some View {
+        Section {
+            Button(action: { sortOptionRaw = "name"; sortAscending = true }) {
+                Label("Name", systemImage: sortOptionRaw == "name" ? "checkmark" : "")
+            }
+            Button(action: { sortOptionRaw = "duration"; sortAscending = false }) {
+                Label("Duration", systemImage: sortOptionRaw == "duration" ? "checkmark" : "")
+            }
+            Button(action: { sortOptionRaw = "recent"; sortAscending = false }) {
+                Label("Recent", systemImage: sortOptionRaw == "recent" ? "checkmark" : "")
+            }
+            Button(action: { sortOptionRaw = "size"; sortAscending = false }) {
+                Label("Size", systemImage: sortOptionRaw == "size" ? "checkmark" : "")
+            }
+            Button(action: { sortOptionRaw = "mostWatched"; sortAscending = false }) {
+                Label("Most Watched", systemImage: sortOptionRaw == "mostWatched" ? "checkmark" : "")
+            }
+        }
+
+        Divider()
+
+        Section {
+            Button(action: { sortAscending = true }) {
+                Label("Ascending", systemImage: sortAscending ? "checkmark" : "")
+            }
+            Button(action: { sortAscending = false }) {
+                Label("Descending", systemImage: !sortAscending ? "checkmark" : "")
+            }
+        }
+
+        Divider()
+
+        Button(action: { showThumbnails.toggle() }) {
+            Label("Show Thumbnails", systemImage: showThumbnails ? "checkmark" : "")
+        }
+
+        Divider()
+
+        Button(action: { settingsStore.autoplayOnAppOpen.toggle() }) {
+            Label("Autoplay on App Open", systemImage: settingsStore.autoplayOnAppOpen ? "checkmark" : "")
+        }
+    }
+
+    // MARK: - View Style Menu for Playlists
+
+    @AppStorage("playlistViewStyle") private var viewStyle: PlaylistViewStyle = .grid
+
+    @ViewBuilder
+    private var playlistViewMenu: some View {
+        Button(action: { viewStyle = .list }) {
+            Label("List View", systemImage: viewStyle == .list ? "checkmark" : "")
+        }
+        Button(action: { viewStyle = .grid }) {
+            Label("Grid View", systemImage: viewStyle == .grid ? "checkmark" : "")
+        }
+    }
+
+    // MARK: - Activity Handlers
+
     private func handlePlayPlaylistActivity(_ activity: NSUserActivity) {
         if let playlistIdString = activity.userInfo?["playlistId"] as? String,
            let playlistId = UUID(uuidString: playlistIdString) {
-            
+
             // Find playlist
             if let playlist = playlistManager.playlists.first(where: { $0.id == playlistId }) {
                 let resolvedVideos = playlist.videoIds.compactMap { id in
@@ -60,7 +176,7 @@ struct MainTabView: View {
             }
         }
     }
-    
+
     private func autoPlayLastContext() {
         guard settingsStore.autoplayOnAppOpen && settingsStore.lastContextType != "" else { return }
 
@@ -70,7 +186,7 @@ struct MainTabView: View {
             let lastVideo = videoManager.videos.first(where: { $0.id == settingsStore.lastVideoId })
 
             if settingsStore.lastContextType == "all" {
-                selectedTab = 0
+                selectedTab = .library
                 // Try to play the last video, fallback to first video if not found
                 let videoToPlay = lastVideo ?? videoManager.videos.first
                 if let video = videoToPlay {
@@ -78,7 +194,7 @@ struct MainTabView: View {
                 }
             } else if settingsStore.lastContextType == "playlist",
                       let playlistId = UUID(uuidString: settingsStore.lastPlaylistId) {
-                selectedTab = 1
+                selectedTab = .playlists
                 if let playlist = playlistManager.playlists.first(where: { $0.id == playlistId }) {
                     let resolvedVideos = playlist.videoIds.compactMap { id in
                         videoManager.videos.first(where: { $0.id == id })
@@ -105,7 +221,7 @@ struct MainTabView: View {
         searchActivity.isEligibleForSearch = true
         searchActivity.isEligibleForPrediction = true
         searchActivity.becomeCurrent()
-        
+
         // 2. Play Playlist Activity
         let playlistActivity = NSUserActivity(activityType: "com.vid.playPlaylist")
         playlistActivity.title = "Play a playlist on Vid"
