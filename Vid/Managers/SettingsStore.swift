@@ -8,7 +8,7 @@ class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
     @AppStorage("shuffleMode") var isShuffleOn: Bool = false
     @AppStorage("aspectRatioMode") var aspectRatioMode: AspectRatioMode = .fill
-    @AppStorage("lastContextType") var lastContextType: String = "" // "all" or "playlist"
+    @AppStorage("lastContextType") var lastContextType: String = "" // "all", "playlist", or "liked"
     @AppStorage("lastPlaylistId") var lastPlaylistId: String = ""
     @AppStorage("lastVideoId") var lastVideoId: String = ""
     @AppStorage("autoplayOnAppOpen") var autoplayOnAppOpen: Bool = false

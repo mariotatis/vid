@@ -15,6 +15,10 @@ struct MainTabView: View {
     // Playlist state
     @State private var showCreatePlaylist = false
 
+    // Navigation state for returning to playlist after closing player
+    @State private var navigateToPlaylistId: UUID?
+    @State private var navigateToLiked: Bool = false
+
     var onAppLoaded: (() -> Void)?
 
     var body: some View {
@@ -48,6 +52,12 @@ struct MainTabView: View {
             autoPlayLastContext()
             donateGenericActivities()
         }
+        .onChange(of: playerVM.showPlayer) { isShowing in
+            if !isShowing {
+                // Player was closed - navigate to the appropriate context
+                navigateToContextAfterPlayerClose()
+            }
+        }
         .onContinueUserActivity("com.vid.playPlaylist") { activity in
             handlePlayPlaylistActivity(activity)
         }
@@ -80,6 +90,8 @@ struct MainTabView: View {
                 videoManager: videoManager,
                 settings: settingsStore,
                 selectedTab: $selectedTab,
+                navigateToPlaylistId: $navigateToPlaylistId,
+                navigateToLiked: $navigateToLiked,
                 onAddVideo: { showFileImporter = true },
                 onAddPlaylist: { showCreatePlaylist = true },
                 hasPlaylistContent: hasPlaylistContent,
@@ -192,6 +204,17 @@ struct MainTabView: View {
                 if let video = videoToPlay {
                     playerVM.play(video: video, from: videoManager.videos, settings: settingsStore)
                 }
+            } else if settingsStore.lastContextType == "liked" {
+                selectedTab = .playlists
+                // Get liked videos
+                let likedVideos = videoManager.videos.filter { settingsStore.likedVideoIds.contains($0.id) }
+                // Try to play the last video if it's liked, otherwise play first liked video
+                let videoToPlay = (lastVideo != nil && likedVideos.contains(where: { $0.id == lastVideo?.id }))
+                    ? lastVideo
+                    : likedVideos.first
+                if let video = videoToPlay {
+                    playerVM.play(video: video, from: likedVideos, settings: settingsStore)
+                }
             } else if settingsStore.lastContextType == "playlist",
                       let playlistId = UUID(uuidString: settingsStore.lastPlaylistId) {
                 selectedTab = .playlists
@@ -208,6 +231,28 @@ struct MainTabView: View {
                     }
                 }
             }
+        }
+    }
+
+    private func navigateToContextAfterPlayerClose() {
+        // Navigate to the context where the video was playing from
+        switch settingsStore.lastContextType {
+        case "liked":
+            selectedTab = .playlists
+            // Small delay to ensure tab switch completes
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                navigateToLiked = true
+            }
+        case "playlist":
+            if let playlistId = UUID(uuidString: settingsStore.lastPlaylistId) {
+                selectedTab = .playlists
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    navigateToPlaylistId = playlistId
+                }
+            }
+        default:
+            // "all" context - stay on library tab
+            selectedTab = .library
         }
     }
 

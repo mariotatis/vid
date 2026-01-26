@@ -98,7 +98,7 @@ struct LikedVideosView: View {
 
             VideoListView(
                 videos: sortedVideos,
-                showThumbnails: sho wThumbnails,
+                showThumbnails: showThumbnails,
                 focusedElement: $focusedElement,
                 onDelete: { offsets in unlikeVideo(at: offsets) },
                 onPlay: { video in

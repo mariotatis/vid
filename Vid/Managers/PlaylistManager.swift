@@ -60,13 +60,36 @@ class PlaylistManager: ObservableObject {
     }
 
     /// Remove any video IDs from all playlists that are not present in `validIds`.
+    /// Also updates video IDs to match the current valid IDs (handles sandbox path changes).
     func pruneMissingVideoIds(validIds: Set<String>) {
+        // Build a map from filename to valid ID for fast lookup
+        // This handles the case where /var vs /private/var paths differ
+        var filenameToValidId: [String: String] = [:]
+        for validId in validIds {
+            if let url = URL(string: validId) {
+                filenameToValidId[url.lastPathComponent] = validId
+            }
+        }
+
         var changed = false
         for i in playlists.indices {
             let original = playlists[i].videoIds
-            let filtered = original.filter { validIds.contains($0) }
-            if filtered.count != original.count {
-                playlists[i].videoIds = filtered
+            var updated: [String] = []
+
+            for videoId in original {
+                // Extract filename from the stored video ID
+                if let url = URL(string: videoId) {
+                    let filename = url.lastPathComponent
+                    // If we have a valid ID for this filename, use it (this handles path changes)
+                    if let matchedValidId = filenameToValidId[filename] {
+                        updated.append(matchedValidId)
+                    }
+                    // Otherwise, the video no longer exists - skip it
+                }
+            }
+
+            if updated != original {
+                playlists[i].videoIds = updated
                 changed = true
             }
         }
@@ -83,25 +106,10 @@ class PlaylistManager: ObservableObject {
     private func loadPlaylists() {
         if let data = UserDefaults.standard.data(forKey: saveKey),
            let decoded = try? JSONDecoder().decode([Playlist].self, from: data) {
-            // Fixup video IDs: The sandbox container path changes on every launch.
-            // Video IDs are based on url.absoluteString which includes the full path.
-            // We need to rebuild video IDs based on the current Documents directory path.
-            if let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-                playlists = decoded.map { playlist in
-                    let updatedVideoIds = playlist.videoIds.map { oldId in
-                        // Extract filename from old URL
-                        if let oldURL = URL(string: oldId) {
-                            let fileName = oldURL.lastPathComponent
-                            let newURL = documents.appendingPathComponent(fileName)
-                            return newURL.absoluteString
-                        }
-                        return oldId
-                    }
-                    return Playlist(id: playlist.id, name: playlist.name, videoIds: updatedVideoIds)
-                }
-            } else {
-                playlists = decoded
-            }
+            // Load playlists as-is. The pruneMissingVideoIds() function will be called
+            // after VideoManager loads videos and will update the video IDs to match
+            // the current valid IDs (handling sandbox path changes).
+            playlists = decoded
         }
     }
 }

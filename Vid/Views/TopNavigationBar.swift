@@ -1,8 +1,22 @@
 import SwiftUI
+import UIKit
 
 enum NavigationTab: String, CaseIterable {
     case library = "Library"
     case playlists = "Playlists"
+}
+
+// MARK: - Swipe Back Gesture Enabler
+
+extension UINavigationController: @retroactive UIGestureRecognizerDelegate {
+    override open func viewDidLoad() {
+        super.viewDidLoad()
+        interactivePopGestureRecognizer?.delegate = self
+    }
+
+    public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        return viewControllers.count > 1
+    }
 }
 
 // Fixed height for TopNavigationBar (excluding safe area)
@@ -192,35 +206,28 @@ struct DetailNavigationBar: View {
     var trailingContent: (() -> AnyView)?
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                // Back button
-                Button(action: onBack) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 17, weight: .semibold))
-                        Text("Back")
-                            .font(.system(size: 17))
-                    }
+        HStack(spacing: 12) {
+            // Back button (circular style matching other nav icons)
+            Button(action: onBack) {
+                Image(systemName: "chevron.left")
                     .foregroundColor(.primary)
-                }
-                .buttonStyle(.plain)
-
-                // Title
-                Text(title)
-                    .font(.system(size: 17, weight: .semibold))
-                    .lineLimit(1)
-
-                Spacer()
-
-                // Trailing actions
-                if let trailing = trailingContent {
-                    trailing()
-                }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .buttonStyle(NavButtonStyle())
+
+            // Title
+            Text(title)
+                .font(.system(size: 17, weight: .semibold))
+                .lineLimit(1)
+
+            Spacer()
+
+            // Trailing actions
+            if let trailing = trailingContent {
+                trailing()
+            }
         }
+        .padding(.horizontal, 16)
+        .frame(height: TOP_NAV_BAR_HEIGHT)
         .background(Color(UIColor.systemBackground))
     }
 }

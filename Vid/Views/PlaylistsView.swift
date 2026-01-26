@@ -15,6 +15,8 @@ struct PlaylistsView: View {
     @ObservedObject var settings: SettingsStore
 
     @Binding var selectedTab: NavigationTab
+    @Binding var navigateToPlaylistId: UUID?
+    @Binding var navigateToLiked: Bool
 
     var onAddVideo: (() -> Void)?
     var onAddPlaylist: (() -> Void)?
@@ -25,6 +27,8 @@ struct PlaylistsView: View {
     @AppStorage("playlistViewStyle") private var viewStyle: PlaylistViewStyle = .grid
     @FocusState private var focusedElement: AppFocus?
     @State private var isShowingLikedVideos = false
+    @State private var activeLikedNavigation = false
+    @State private var activePlaylistNavigation: UUID?
 
     private var hasLikedVideos: Bool {
         !settings.likedVideoIds.isEmpty
@@ -44,28 +48,54 @@ struct PlaylistsView: View {
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                // Top Navigation Bar
-                TopNavigationBar(
-                    selectedTab: $selectedTab,
-                    onAddVideo: onAddVideo,
-                    onToggleSearch: nil,
-                    showingSearch: false,
-                    videosExist: false,
-                    onAddPlaylist: onAddPlaylist,
-                    hasPlaylistContent: hasPlaylistContent,
-                    sortMenuContent: sortMenuContent,
-                    viewStyleMenuContent: viewStyleMenuContent
-                )
+            ZStack {
+                // Hidden NavigationLinks for programmatic navigation
+                NavigationLink(
+                    destination: LikedVideosView(videoManager: videoManager, settings: settings)
+                        .onAppear { isShowingLikedVideos = true }
+                        .onDisappear { isShowingLikedVideos = false },
+                    isActive: $activeLikedNavigation
+                ) {
+                    EmptyView()
+                }
+                .hidden()
 
-                // Content area
-                Group {
-                    if !hasAnyContent {
-                        emptyStateView
-                    } else if viewStyle == .list {
-                        playlistListView
-                    } else {
-                        playlistGridView
+                if let playlist = playlistManager.playlists.first(where: { $0.id == activePlaylistNavigation }) {
+                    NavigationLink(
+                        destination: PlaylistDetailView(playlist: playlist, playlistManager: playlistManager, videoManager: videoManager, settings: settings),
+                        isActive: Binding(
+                            get: { activePlaylistNavigation != nil },
+                            set: { if !$0 { activePlaylistNavigation = nil } }
+                        )
+                    ) {
+                        EmptyView()
+                    }
+                    .hidden()
+                }
+
+                VStack(spacing: 0) {
+                    // Top Navigation Bar
+                    TopNavigationBar(
+                        selectedTab: $selectedTab,
+                        onAddVideo: onAddVideo,
+                        onToggleSearch: nil,
+                        showingSearch: false,
+                        videosExist: false,
+                        onAddPlaylist: onAddPlaylist,
+                        hasPlaylistContent: hasPlaylistContent,
+                        sortMenuContent: sortMenuContent,
+                        viewStyleMenuContent: viewStyleMenuContent
+                    )
+
+                    // Content area
+                    Group {
+                        if !hasAnyContent {
+                            emptyStateView
+                        } else if viewStyle == .list {
+                            playlistListView
+                        } else {
+                            playlistGridView
+                        }
                     }
                 }
             }
@@ -79,6 +109,18 @@ struct PlaylistsView: View {
                 } else if let firstId = playlistManager.playlists.first?.id {
                     focusedElement = .playlistItem(firstId)
                 }
+            }
+        }
+        .onChange(of: navigateToLiked) { shouldNavigate in
+            if shouldNavigate {
+                activeLikedNavigation = true
+                navigateToLiked = false
+            }
+        }
+        .onChange(of: navigateToPlaylistId) { playlistId in
+            if let id = playlistId {
+                activePlaylistNavigation = id
+                navigateToPlaylistId = nil
             }
         }
     }
