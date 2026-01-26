@@ -57,13 +57,13 @@ struct VideoListView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
-                        .padding(.vertical, 12)
+                        .padding(.vertical, VIDEO_ROW_VERTICAL_PADDING)
                         .background(focusedElement.wrappedValue == .videoItem(video.id) ? Color.blue.opacity(0.15) : Color.clear)
                         .cornerRadius(8)
                         .vidFocusHighlight()
                     }
                     .buttonStyle(.plain)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                    .listRowInsets(EdgeInsets(top: 0, leading: LIST_ROW_HORIZONTAL_INSET, bottom: 0, trailing: LIST_ROW_HORIZONTAL_INSET))
                     .listRowSeparatorTint(Color.gray.opacity(0.3))
                     .focused(focusedElement, equals: .videoItem(video.id))
                     .id(video.id)

@@ -105,11 +105,11 @@ struct PlaylistsView: View {
                         }
                         Spacer()
                     }
-                    .padding(.vertical, 12)
+                    .padding(.vertical, VIDEO_ROW_VERTICAL_PADDING)
                     .vidFocusHighlight()
                 }
                 .focused($focusedElement, equals: .likedPlaylist)
-                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 0, leading: LIST_ROW_HORIZONTAL_INSET, bottom: 0, trailing: LIST_ROW_HORIZONTAL_INSET))
             }
 
             ForEach(playlistManager.playlists) { playlist in
@@ -121,11 +121,11 @@ struct PlaylistsView: View {
                             .font(.footnote)
                             .foregroundColor(.secondary)
                     }
-                    .padding(.vertical, 12)
+                    .padding(.vertical, VIDEO_ROW_VERTICAL_PADDING)
                     .vidFocusHighlight()
                 }
                 .focused($focusedElement, equals: .playlistItem(playlist.id))
-                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 0, leading: LIST_ROW_HORIZONTAL_INSET, bottom: 0, trailing: LIST_ROW_HORIZONTAL_INSET))
             }
             .onDelete { indexSet in
                 playlistManager.deletePlaylist(at: indexSet)
@@ -133,7 +133,7 @@ struct PlaylistsView: View {
         }
         .listStyle(.plain)
         .safeAreaInset(edge: .top, spacing: 0) {
-            Color.clear.frame(height: 133)
+            Color.clear.frame(height: TOP_NAV_CONTENT_INSET + PLAYLISTS_LIST_TOP_EXTRA)
         }
     }
 
@@ -167,7 +167,7 @@ struct PlaylistsView: View {
             .padding(.vertical, 16)
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            Color.clear.frame(height: 133)
+            Color.clear.frame(height: TOP_NAV_CONTENT_INSET + PLAYLISTS_LIST_TOP_EXTRA)
         }
     }
 

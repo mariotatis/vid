@@ -119,7 +119,7 @@ struct PlaylistDetailView: View {
         VStack(spacing: 0) {
             if showSearch {
                 searchBar
-                    .padding(.top, 64)
+                    .padding(.top, TOP_NAV_CONTENT_INSET)
             }
 
             VideoListView(
@@ -134,7 +134,7 @@ struct PlaylistDetailView: View {
                 }
             )
             .safeAreaInset(edge: .top, spacing: 0) {
-                Color.clear.frame(height: showSearch ? 0 : 64)
+                Color.clear.frame(height: showSearch ? 0 : TOP_NAV_CONTENT_INSET)
             }
         }
     }
@@ -211,13 +211,19 @@ struct PlaylistDetailView: View {
     @ViewBuilder
     private var trailingButtons: some View {
         HStack(spacing: 8) {
+            // Plus first
+            Button(action: { showAddVideos = true }) {
+                Image(systemName: "plus")
+                    .foregroundColor(.primary)
+            }
+            .buttonStyle(NavButtonStyle())
+
+            // Then search and filter (only when there are videos)
             if !resolvedVideos.isEmpty {
                 Button(action: {
                     withAnimation {
                         showSearch.toggle()
-                        if !showSearch {
-                            searchText = ""
-                        }
+                        if !showSearch { searchText = "" }
                     }
                 }) {
                     Image(systemName: showSearch ? "xmark" : "magnifyingglass")
@@ -227,72 +233,27 @@ struct PlaylistDetailView: View {
 
                 Menu {
                     Section {
-                        Button(action: {
-                            sortOption = .name
-                            sortAscending = defaultOrder(for: .name)
-                        }) {
-                            Label("Name", systemImage: sortOption == .name ? "checkmark" : "")
-                        }
-
-                        Button(action: {
-                            sortOption = .duration
-                            sortAscending = defaultOrder(for: .duration)
-                        }) {
-                            Label("Duration", systemImage: sortOption == .duration ? "checkmark" : "")
-                        }
-
-                        Button(action: {
-                            sortOption = .recent
-                            sortAscending = defaultOrder(for: .recent)
-                        }) {
-                            Label("Recent", systemImage: sortOption == .recent ? "checkmark" : "")
-                        }
-
-                        Button(action: {
-                            sortOption = .size
-                            sortAscending = defaultOrder(for: .size)
-                        }) {
-                            Label("Size", systemImage: sortOption == .size ? "checkmark" : "")
-                        }
-
-                        Button(action: {
-                            sortOption = .mostWatched
-                            sortAscending = defaultOrder(for: .mostWatched)
-                        }) {
-                            Label("Most Watched", systemImage: sortOption == .mostWatched ? "checkmark" : "")
-                        }
+                        Button(action: { sortOption = .name;        sortAscending = defaultOrder(for: .name) }) { Label("Name",        systemImage: sortOption == .name ? "checkmark" : "") }
+                        Button(action: { sortOption = .duration;    sortAscending = defaultOrder(for: .duration) }) { Label("Duration",    systemImage: sortOption == .duration ? "checkmark" : "") }
+                        Button(action: { sortOption = .recent;      sortAscending = defaultOrder(for: .recent) }) { Label("Recent",      systemImage: sortOption == .recent ? "checkmark" : "") }
+                        Button(action: { sortOption = .size;        sortAscending = defaultOrder(for: .size) }) { Label("Size",        systemImage: sortOption == .size ? "checkmark" : "") }
+                        Button(action: { sortOption = .mostWatched; sortAscending = defaultOrder(for: .mostWatched) }) { Label("Most Watched", systemImage: sortOption == .mostWatched ? "checkmark" : "") }
                     }
 
                     Divider()
 
                     Section {
-                        Button(action: { sortAscending = true }) {
-                            Label("Ascending", systemImage: sortAscending ? "checkmark" : "")
-                        }
-                        Button(action: { sortAscending = false }) {
-                            Label("Descending", systemImage: !sortAscending ? "checkmark" : "")
-                        }
+                        Button(action: { sortAscending = true })  { Label("Ascending",  systemImage: sortAscending ? "checkmark" : "") }
+                        Button(action: { sortAscending = false }) { Label("Descending", systemImage: !sortAscending ? "checkmark" : "") }
                     }
 
                     Divider()
 
-                    Button(action: { showThumbnails.toggle() }) {
-                        Label("Show Thumbnails", systemImage: showThumbnails ? "checkmark" : "")
-                    }
+                    Button(action: { showThumbnails.toggle() }) { Label("Show Thumbnails", systemImage: showThumbnails ? "checkmark" : "") }
                 } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .foregroundColor(.primary)
+                    NavIconCircle(systemName: "ellipsis")
                 }
-                .buttonStyle(NavButtonStyle())
             }
-
-            Button(action: {
-                showAddVideos = true
-            }) {
-                Image(systemName: "plus")
-                    .foregroundColor(.primary)
-            }
-            .buttonStyle(NavButtonStyle())
         }
     }
 

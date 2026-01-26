@@ -98,7 +98,7 @@ struct LikedVideosView: View {
         VStack(spacing: 0) {
             if showSearch {
                 searchBar
-                    .padding(.top, 64)
+                    .padding(.top, TOP_NAV_CONTENT_INSET)
             }
 
             VideoListView(
@@ -113,7 +113,7 @@ struct LikedVideosView: View {
                 }
             )
             .safeAreaInset(edge: .top, spacing: 0) {
-                Color.clear.frame(height: showSearch ? 0 : 64)
+                Color.clear.frame(height: showSearch ? 0 : TOP_NAV_CONTENT_INSET)
             }
         }
     }
