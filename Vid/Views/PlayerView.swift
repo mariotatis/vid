@@ -477,6 +477,7 @@ struct PlayerView: View {
             }
 
         }
+        .dynamicTypeSize(.large)
         .onAppear {
             resetControlTimer()
             if focusedElement == nil {
