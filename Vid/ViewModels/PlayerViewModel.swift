@@ -84,12 +84,30 @@ class PlayerViewModel: ObservableObject {
             }
             .store(in: &cancellables)
             
-        // Observe player status to keep isPlaying in sync
+        // Observe player status to keep isPlaying and Audio Engine in sync
         player.publisher(for: \.timeControlStatus)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] status in
-                self?.isPlaying = (status == .playing)
-                self?.updateNowPlayingInfo()
+                guard let self = self else { return }
+                self.isPlaying = (status == .playing)
+                
+                if status == .playing {
+                    if !self.engine.isRunning { try? self.engine.start() }
+                    self.resyncAudio(to: self.player.currentTime().seconds)
+                } else if status == .paused {
+                    self.playerNode.pause()
+                }
+                
+                self.updateNowPlayingInfo()
+            }
+            .store(in: &cancellables)
+            
+        // Observe time jumps (e.g., seeking via system controls) to resync audio
+        NotificationCenter.default.publisher(for: AVPlayerItem.timeJumpedNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                self.resyncAudio(to: self.player.currentTime().seconds)
             }
             .store(in: &cancellables)
     }
@@ -159,6 +177,9 @@ class PlayerViewModel: ObservableObject {
     private func startPlayback() {
         guard let video = currentVideo else { return }
         
+        // Stop current audio immediately to prevent transition "blips"
+        playerNode.stop()
+        
         // Update watch status
         if let index = VideoManager.shared.videos.firstIndex(where: { $0.id == video.id }) {
             VideoManager.shared.videos[index].isWatched = true
@@ -180,7 +201,6 @@ class PlayerViewModel: ObservableObject {
                 audioSampleRate = file.processingFormat.sampleRate
                 audioLengthSamples = file.length
                 
-                playerNode.stop()
                 playerNode.scheduleFile(file, at: nil, completionHandler: nil)
             }
         } catch {
@@ -343,12 +363,41 @@ class PlayerViewModel: ObservableObject {
     }
     
     private func resyncAudio(to time: Double) {
-        if let file = audioFile {
-            playerNode.stop()
-            let startSample = AVAudioFramePosition(time * audioSampleRate)
-            let remainingSamples = AVAudioFrameCount(max(0, audioLengthSamples - startSample))
-            if remainingSamples > 0 {
-                playerNode.scheduleSegment(file, startingFrame: startSample, frameCount: remainingSamples, at: nil, completionHandler: nil)
+        // Sanitize input to prevent negative sample calculations
+        let clampedTime = max(0, time)
+        guard let file = audioFile else { return }
+        
+        // 1. Calculate the target sample
+        var targetSample = AVAudioFramePosition(clampedTime * audioSampleRate)
+        
+        // Ensure targetSample is within bounds (0 to length - 1)
+        targetSample = max(0, min(targetSample, audioLengthSamples - 1))
+        
+        // 2. Optimization: If we are already playing and very close to the target, don't interrupt
+        if playerNode.isPlaying {
+            if let lastRenderTime = playerNode.lastRenderTime,
+               let playerTime = playerNode.playerTime(forNodeTime: lastRenderTime),
+               playerTime.isSampleTimeValid {
+                let currentSample = playerTime.sampleTime
+                let diff = abs(targetSample - currentSample)
+                let diffSeconds = Double(diff) / audioSampleRate
+                // If diff is less than 100ms, don't resync to avoid stutters
+                if diffSeconds < 0.1 { return }
+            }
+        }
+        
+        let wasPlaying = playerNode.isPlaying || player.timeControlStatus == .playing
+        
+        // 3. Reschedule
+        playerNode.stop()
+        let remainingSamples = AVAudioFrameCount(max(0, audioLengthSamples - targetSample))
+        if remainingSamples > 0 {
+            playerNode.scheduleSegment(file, startingFrame: targetSample, frameCount: remainingSamples, at: nil, completionHandler: nil)
+            
+            // 4. Resume if it was playing
+            if wasPlaying {
+                if !engine.isRunning { try? engine.start() }
+                playerNode.play()
             }
         }
     }
@@ -361,11 +410,12 @@ class PlayerViewModel: ObservableObject {
             if !engine.isRunning { try? engine.start() }
             
             // Resync audio with video before playing to ensure they are aligned
-            let currentTime = player.currentTime().seconds
-            resyncAudio(to: currentTime)
+            resyncAudio(to: player.currentTime().seconds)
             
             player.play()
-            playerNode.play()
+            if !playerNode.isPlaying {
+                playerNode.play()
+            }
         }
         // isPlaying will be updated by the observer on timeControlStatus
         updateNowPlayingInfo()
@@ -404,10 +454,17 @@ class PlayerViewModel: ObservableObject {
         }
         
         // Disable behavior that might interfere (like 15s skip)
+        // Setting preferredIntervals to empty and removing targets can help force track commands
         commandCenter.skipForwardCommand.isEnabled = false
+        commandCenter.skipForwardCommand.removeTarget(nil)
+        commandCenter.skipForwardCommand.preferredIntervals = []
         commandCenter.skipBackwardCommand.isEnabled = false
+        commandCenter.skipBackwardCommand.removeTarget(nil)
+        commandCenter.skipBackwardCommand.preferredIntervals = []
         commandCenter.seekForwardCommand.isEnabled = false
+        commandCenter.seekForwardCommand.removeTarget(nil)
         commandCenter.seekBackwardCommand.isEnabled = false
+        commandCenter.seekBackwardCommand.removeTarget(nil)
         
         // Explicitly enable next/previous
         commandCenter.nextTrackCommand.isEnabled = true
@@ -437,6 +494,9 @@ class PlayerViewModel: ObservableObject {
                 }
                 nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
             }
+
+            nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackQueueCount] = queue.count
+            nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackQueueIndex] = currentIndex
         }
         
         nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = currentTime
