@@ -78,16 +78,101 @@ struct PlayerView: View {
             HiddenVolumeView()
                 .frame(width: 0, height: 0)
 
-            // Custom Video Player (Hidden Controls)
+            // Custom Video Player with brightness/volume gesture zones
             GeometryReader { geometry in
                 let ratio = settings.aspectRatioMode.ratioValue
 
-                CustomVideoPlayer(player: playerVM.player, videoGravity: settings.aspectRatioMode.gravity)
-                    .edgesIgnoringSafeArea(.all)
-                    .if(ratio != nil) { view in
-                        view.aspectRatio(ratio!, contentMode: .fit)
+                ZStack {
+                    CustomVideoPlayer(player: playerVM.player, videoGravity: settings.aspectRatioMode.gravity)
+                        .edgesIgnoringSafeArea(.all)
+                        .if(ratio != nil) { view in
+                            view.aspectRatio(ratio!, contentMode: .fit)
+                        }
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+
+                    // Gesture zones for when controls are hidden (taps and drags)
+                    if !showControls && !showEQ {
+                        HStack(spacing: 0) {
+                            // Left zone - Brightness + tap to show controls
+                            Color.clear
+                                .contentShape(Rectangle())
+                                .gesture(
+                                    DragGesture(minimumDistance: 10)
+                                        .onChanged { gesture in
+                                            // Ignore gestures in top/bottom 1/5 of screen
+                                            let topMargin = geometry.size.height / 5
+                                            let bottomMargin = geometry.size.height * 4 / 5
+                                            guard gesture.startLocation.y > topMargin && gesture.startLocation.y < bottomMargin else { return }
+
+                                            if !isAdjustingBrightness {
+                                                isAdjustingBrightness = true
+                                                gestureStartValue = brightnessValue
+                                                gestureStartY = gesture.startLocation.y
+                                            }
+                                            let deltaY = gestureStartY - gesture.location.y
+                                            let sensitivity: CGFloat = 1.5 / geometry.size.height
+                                            let newValue = gestureStartValue + (deltaY * sensitivity)
+                                            brightnessValue = min(max(newValue, 0), 1)
+                                            UIScreen.main.brightness = brightnessValue
+                                        }
+                                        .onEnded { _ in
+                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                                withAnimation(.easeOut(duration: 0.3)) {
+                                                    isAdjustingBrightness = false
+                                                }
+                                            }
+                                        }
+                                )
+                                .onTapGesture {
+                                    toggleControls()
+                                }
+                                .frame(width: geometry.size.width / 3)
+
+                            // Middle zone - tap to show controls
+                            Color.clear
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    toggleControls()
+                                }
+                                .frame(width: geometry.size.width / 3)
+
+                            // Right zone - Volume + tap to show controls
+                            Color.clear
+                                .contentShape(Rectangle())
+                                .gesture(
+                                    DragGesture(minimumDistance: 10)
+                                        .onChanged { gesture in
+                                            // Ignore gestures in top/bottom 1/5 of screen
+                                            let topMargin = geometry.size.height / 5
+                                            let bottomMargin = geometry.size.height * 4 / 5
+                                            guard gesture.startLocation.y > topMargin && gesture.startLocation.y < bottomMargin else { return }
+
+                                            if !isAdjustingVolume {
+                                                isAdjustingVolume = true
+                                                gestureStartValue = volumeValue
+                                                gestureStartY = gesture.startLocation.y
+                                            }
+                                            let deltaY = gestureStartY - gesture.location.y
+                                            let sensitivity: CGFloat = 1.5 / geometry.size.height
+                                            let newValue = gestureStartValue + (deltaY * sensitivity)
+                                            volumeValue = min(max(newValue, 0), 1)
+                                            setSystemVolume(Float(volumeValue))
+                                        }
+                                        .onEnded { _ in
+                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                                withAnimation(.easeOut(duration: 0.3)) {
+                                                    isAdjustingVolume = false
+                                                }
+                                            }
+                                        }
+                                )
+                                .onTapGesture {
+                                    toggleControls()
+                                }
+                                .frame(width: geometry.size.width / 3)
+                        }
                     }
-                    .frame(width: geometry.size.width, height: geometry.size.height)
+                }
             }
             
             // Controls Overlay
@@ -289,6 +374,66 @@ struct PlayerView: View {
                         controlHideTimer?.invalidate()
                     }
                 }
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 10)
+                        .onChanged { gesture in
+                            // Only handle if EQ is not shown
+                            guard !showEQ else { return }
+
+                            let screenWidth = UIScreen.main.bounds.width
+                            let screenHeight = UIScreen.main.bounds.height
+                            let startX = gesture.startLocation.x
+                            let startY = gesture.startLocation.y
+                            let leftThird = screenWidth / 3
+                            let rightThird = screenWidth * 2 / 3
+
+                            // Ignore gestures in top/bottom 1/5 of screen
+                            let topMargin = screenHeight / 5
+                            let bottomMargin = screenHeight * 4 / 5
+                            guard startY > topMargin && startY < bottomMargin else { return }
+
+                            if startX < leftThird {
+                                // Brightness
+                                if !isAdjustingBrightness && !isAdjustingVolume {
+                                    isAdjustingBrightness = true
+                                    gestureStartValue = brightnessValue
+                                    gestureStartY = gesture.startLocation.y
+                                    controlHideTimer?.invalidate()
+                                }
+                                if isAdjustingBrightness {
+                                    let deltaY = gestureStartY - gesture.location.y
+                                    let sensitivity: CGFloat = 1.5 / screenHeight
+                                    let newValue = gestureStartValue + (deltaY * sensitivity)
+                                    brightnessValue = min(max(newValue, 0), 1)
+                                    UIScreen.main.brightness = brightnessValue
+                                }
+                            } else if startX > rightThird {
+                                // Volume
+                                if !isAdjustingVolume && !isAdjustingBrightness {
+                                    isAdjustingVolume = true
+                                    gestureStartValue = volumeValue
+                                    gestureStartY = gesture.startLocation.y
+                                    controlHideTimer?.invalidate()
+                                }
+                                if isAdjustingVolume {
+                                    let deltaY = gestureStartY - gesture.location.y
+                                    let sensitivity: CGFloat = 1.5 / screenHeight
+                                    let newValue = gestureStartValue + (deltaY * sensitivity)
+                                    volumeValue = min(max(newValue, 0), 1)
+                                    setSystemVolume(Float(volumeValue))
+                                }
+                            }
+                        }
+                        .onEnded { _ in
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                withAnimation(.easeOut(duration: 0.3)) {
+                                    isAdjustingBrightness = false
+                                    isAdjustingVolume = false
+                                }
+                            }
+                            resetControlTimer()
+                        }
+                )
             }
 
             // Brightness/Volume Progress Bar Overlays
@@ -331,76 +476,6 @@ struct PlayerView: View {
                 .allowsHitTesting(false)
             }
 
-            // Gesture Overlay - sits on top of everything (disabled when controls visible)
-            GeometryReader { geometry in
-                HStack(spacing: 0) {
-                    // Left zone - Brightness control
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .gesture(
-                            DragGesture(minimumDistance: 10)
-                                .onChanged { gesture in
-                                    if !isAdjustingBrightness {
-                                        isAdjustingBrightness = true
-                                        gestureStartValue = brightnessValue
-                                        gestureStartY = gesture.startLocation.y
-                                    }
-                                    let deltaY = gestureStartY - gesture.location.y
-                                    let sensitivity: CGFloat = 1.5 / geometry.size.height
-                                    let newValue = gestureStartValue + (deltaY * sensitivity)
-                                    brightnessValue = min(max(newValue, 0), 1)
-                                    UIScreen.main.brightness = brightnessValue
-                                }
-                                .onEnded { _ in
-                                    withAnimation(.easeOut(duration: 0.3)) {
-                                        isAdjustingBrightness = false
-                                    }
-                                }
-                        )
-                        .onTapGesture {
-                            toggleControls()
-                        }
-                        .frame(width: geometry.size.width / 3)
-
-                    // Middle zone - Tap to toggle controls
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            toggleControls()
-                        }
-                        .frame(width: geometry.size.width / 3)
-
-                    // Right zone - Volume control
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .gesture(
-                            DragGesture(minimumDistance: 10)
-                                .onChanged { gesture in
-                                    if !isAdjustingVolume {
-                                        isAdjustingVolume = true
-                                        gestureStartValue = volumeValue
-                                        gestureStartY = gesture.startLocation.y
-                                    }
-                                    let deltaY = gestureStartY - gesture.location.y
-                                    let sensitivity: CGFloat = 1.5 / geometry.size.height
-                                    let newValue = gestureStartValue + (deltaY * sensitivity)
-                                    volumeValue = min(max(newValue, 0), 1)
-                                    setSystemVolume(Float(volumeValue))
-                                }
-                                .onEnded { _ in
-                                    withAnimation(.easeOut(duration: 0.3)) {
-                                        isAdjustingVolume = false
-                                    }
-                                }
-                        )
-                        .onTapGesture {
-                            toggleControls()
-                        }
-                        .frame(width: geometry.size.width / 3)
-                }
-            }
-            .edgesIgnoringSafeArea(.all)
-            .allowsHitTesting(!showControls)
         }
         .onAppear {
             resetControlTimer()
@@ -555,10 +630,11 @@ struct PlayerView: View {
     
     private func resetControlTimer() {
         controlHideTimer?.invalidate()
-        
+
         controlHideTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
             withAnimation {
-                if !isDraggingSlider {
+                // Don't hide if dragging slider or adjusting brightness/volume
+                if !isDraggingSlider && !isAdjustingBrightness && !isAdjustingVolume {
                     showControls = false
                     showEQ = false
                 }
@@ -622,20 +698,20 @@ struct PlayerView: View {
 struct VerticalSlider: View {
     @Binding var value: Double // 0.0 to 1.0
     var onEditingChanged: (Bool) -> Void
-    
+
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .bottom) {
                 // Background Track
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.gray.opacity(0.4))
+                    .fill(Color.white.opacity(0.3))
                     .frame(width: 6)
-                
+
                 // Fill Track
                 RoundedRectangle(cornerRadius: 3)
                     .fill(Color.white)
                     .frame(width: 6, height: CGFloat(value) * geo.size.height)
-                
+
                 // Thumb
                 Circle()
                     .fill(Color.white)
@@ -668,6 +744,8 @@ struct NativeVerticalSlider: View {
     var body: some View {
         GeometryReader { geo in
             Slider(value: $value, in: 0...1, onEditingChanged: onEditingChanged)
+                .accentColor(.white)
+                .tint(.white)
                 .rotationEffect(.degrees(-90))
                 .frame(width: geo.size.height, height: geo.size.width)
                 .offset(x: -geo.size.height / 2 + geo.size.width / 2,
