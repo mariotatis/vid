@@ -43,6 +43,7 @@ struct PlayerView: View {
     let frequencies: [String] = ["60Hz", "150Hz", "400Hz", "1kHz", "2.4kHz", "15kHz"]
 
     @State private var centerToastMessage: String?
+    @State private var scrubbingTime: Double? = nil
 
     // Brightness/Volume gesture states
     @State private var isAdjustingBrightness = false
@@ -337,17 +338,29 @@ struct PlayerView: View {
                                             .frame(height: 4)
 
                                         Slider(value: Binding(get: {
-                                            playerVM.currentTime
+                                            scrubbingTime ?? playerVM.currentTime
                                         }, set: { newValue in
-                                            playerVM.isSeeking = true
-                                            playerVM.currentTime = newValue
+                                            scrubbingTime = newValue
                                         }), in: 0...max(playerVM.duration, 1)) { editing in
                                              isDraggingSlider = editing
-                                             if !editing {
-                                                 playerVM.seek(to: playerVM.currentTime)
-                                                 resetControlTimer()
-                                             } else {
+                                             if editing {
+                                                 playerVM.isSeeking = true
                                                  controlHideTimer?.invalidate()
+                                             } else {
+                                                 // Only commit seek if we were actually scrubbing and it was a real intentional move
+                                                 if let st = scrubbingTime {
+                                                     let delta = abs(st - playerVM.currentTime)
+                                                     // If move is > 1 second, we consider it a real seek. 
+                                                     // This ignores simple taps or presses that might move the thumb micro-amounts.
+                                                     if delta > 1.0 {
+                                                         playerVM.seek(to: st)
+                                                     } else {
+                                                         // Was just a tap or press-and-hold without dragging
+                                                         playerVM.isSeeking = false
+                                                     }
+                                                 }
+                                                 scrubbingTime = nil
+                                                 resetControlTimer()
                                              }
                                         }
                                         .accentColor(.white)
