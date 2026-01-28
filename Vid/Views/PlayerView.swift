@@ -264,6 +264,7 @@ struct PlayerView: View {
                                             .font(.system(size: 16, weight: .semibold))
                                             .foregroundColor(.white.opacity(0.9))
                                             .lineLimit(1)
+                                            .padding(.leading, 6)
                                             .padding(.horizontal, 8)
                                     }
                                 }
@@ -278,7 +279,7 @@ struct PlayerView: View {
                                     .transition(.move(edge: .bottom).combined(with: .opacity))
                             } else {
                                 // Playback Controls
-                                HStack(spacing: 6) {
+                                HStack(spacing: 5) {
                                     Button(action: {
                                         resetControlTimer()
                                         playerVM.playPrevious()
@@ -318,7 +319,7 @@ struct PlayerView: View {
                                     .foregroundColor(.white)
                                     .focused($focusedElement, equals: .playerNext)
                                 }
-                                .padding(.bottom, 20)
+                                .padding(.bottom, 35)
                             }
                             
                             // Bottom Bar (Slider and Time)
@@ -344,7 +345,6 @@ struct PlayerView: View {
                                              isDraggingSlider = editing
                                              if !editing {
                                                  playerVM.seek(to: playerVM.currentTime)
-                                                 playerVM.isSeeking = false
                                                  resetControlTimer()
                                              } else {
                                                  controlHideTimer?.invalidate()
@@ -360,7 +360,8 @@ struct PlayerView: View {
                                         .font(.caption)
                                         .monospacedDigit()
                                 }
-                                .padding([.horizontal, .bottom])
+                                .padding(.horizontal, 30)
+                                .padding(.bottom, 60)
                             }
                         }
                     }
@@ -465,7 +466,7 @@ struct PlayerView: View {
                         .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 24)
-                        .padding(.vertical, 12)
+                        .padding(.vertical, 60)
                         .background(Color.black.opacity(0.001))
                         .shadow(color: .black.opacity(0.7), radius: 8, x: 0, y: 0)
                         .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 0)
@@ -677,7 +678,7 @@ struct PlayerView: View {
         withAnimation(.easeInOut(duration: 0.3)) {
             centerToastMessage = message
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             if centerToastMessage == message {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     centerToastMessage = nil

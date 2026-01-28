@@ -106,7 +106,7 @@ class PlayerViewModel: ObservableObject {
         NotificationCenter.default.publisher(for: AVPlayerItem.timeJumpedNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                guard let self = self else { return }
+                guard let self = self, !self.isSeeking else { return }
                 self.resyncAudio(to: self.player.currentTime().seconds)
             }
             .store(in: &cancellables)
@@ -246,27 +246,20 @@ class PlayerViewModel: ObservableObject {
     }
     
     func seek(to time: Double) {
+        self.isSeeking = true
         // Seek Video
         let cmTime = CMTime(seconds: time, preferredTimescale: 600)
-        player.seek(to: cmTime, toleranceBefore: .zero, toleranceAfter: .zero)
-        
-        // Seek Audio
-        if let file = audioFile {
-            playerNode.stop()
+        player.seek(to: cmTime, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] finished in
+            guard let self = self, finished else { return }
             
-            let startSample = AVAudioFramePosition(time * audioSampleRate)
-            let remainingSamples = AVAudioFrameCount(max(0, audioLengthSamples - startSample))
+            // Seek Audio - centrally managed, bypass epsilon check for manual seek
+            self.resyncAudio(to: time, force: true)
             
-            if remainingSamples > 0 {
-                playerNode.scheduleSegment(file, startingFrame: startSample, frameCount: remainingSamples, at: nil, completionHandler: nil)
-                if isPlaying {
-                    playerNode.play()
-                }
-            }
+            self.isSeeking = false
+            self.updateNowPlayingInfo()
         }
         
         currentTime = time
-        updateNowPlayingInfo()
     }
     
     func playNext() {
@@ -362,7 +355,7 @@ class PlayerViewModel: ObservableObject {
         }
     }
     
-    private func resyncAudio(to time: Double) {
+    private func resyncAudio(to time: Double, force: Bool = false) {
         // Sanitize input to prevent negative sample calculations
         let clampedTime = max(0, time)
         guard let file = audioFile else { return }
@@ -374,7 +367,8 @@ class PlayerViewModel: ObservableObject {
         targetSample = max(0, min(targetSample, audioLengthSamples - 1))
         
         // 2. Optimization: If we are already playing and very close to the target, don't interrupt
-        if playerNode.isPlaying {
+        // Unless we are 'forcing' a sync (e.g., manual seeker release)
+        if playerNode.isPlaying && !force {
             if let lastRenderTime = playerNode.lastRenderTime,
                let playerTime = playerNode.playerTime(forNodeTime: lastRenderTime),
                playerTime.isSampleTimeValid {
