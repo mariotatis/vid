@@ -52,6 +52,8 @@ struct PlayerView: View {
     @State private var volumeValue: CGFloat = 0.5
     @State private var gestureStartValue: CGFloat = 0
     @State private var gestureStartY: CGFloat = 0
+    @State private var gestureCommitted = false  // True once we pass the threshold
+    private let gestureActivationThreshold: CGFloat = 30  // Pixels before activation
 
     private var isCurrentVideoLiked: Bool {
         guard let videoId = playerVM.currentVideo?.id else { return false }
@@ -105,18 +107,30 @@ struct PlayerView: View {
                                             let bottomMargin = geometry.size.height * 4 / 5
                                             guard gesture.startLocation.y > topMargin && gesture.startLocation.y < bottomMargin else { return }
 
-                                            if !isAdjustingBrightness {
-                                                isAdjustingBrightness = true
-                                                gestureStartValue = brightnessValue
-                                                gestureStartY = gesture.startLocation.y
+                                            if !gestureCommitted {
+                                                // Check if we've passed the threshold
+                                                let deltaY = abs(gesture.translation.height)
+                                                let deltaX = abs(gesture.translation.width)
+
+                                                // Only commit if vertical movement exceeds threshold AND is more vertical than horizontal
+                                                if deltaY > gestureActivationThreshold && deltaY > deltaX {
+                                                    gestureCommitted = true
+                                                    isAdjustingBrightness = true
+                                                    gestureStartValue = brightnessValue
+                                                    gestureStartY = gesture.startLocation.y
+                                                }
                                             }
-                                            let deltaY = gestureStartY - gesture.location.y
-                                            let sensitivity: CGFloat = 1.5 / geometry.size.height
-                                            let newValue = gestureStartValue + (deltaY * sensitivity)
-                                            brightnessValue = min(max(newValue, 0), 1)
-                                            UIScreen.main.brightness = brightnessValue
+
+                                            if gestureCommitted && isAdjustingBrightness {
+                                                let deltaY = gestureStartY - gesture.location.y
+                                                let sensitivity: CGFloat = 1.5 / geometry.size.height
+                                                let newValue = gestureStartValue + (deltaY * sensitivity)
+                                                brightnessValue = min(max(newValue, 0), 1)
+                                                UIScreen.main.brightness = brightnessValue
+                                            }
                                         }
                                         .onEnded { _ in
+                                            gestureCommitted = false
                                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                                 withAnimation(.easeOut(duration: 0.3)) {
                                                     isAdjustingBrightness = false
@@ -148,18 +162,30 @@ struct PlayerView: View {
                                             let bottomMargin = geometry.size.height * 4 / 5
                                             guard gesture.startLocation.y > topMargin && gesture.startLocation.y < bottomMargin else { return }
 
-                                            if !isAdjustingVolume {
-                                                isAdjustingVolume = true
-                                                gestureStartValue = volumeValue
-                                                gestureStartY = gesture.startLocation.y
+                                            if !gestureCommitted {
+                                                // Check if we've passed the threshold
+                                                let deltaY = abs(gesture.translation.height)
+                                                let deltaX = abs(gesture.translation.width)
+
+                                                // Only commit if vertical movement exceeds threshold AND is more vertical than horizontal
+                                                if deltaY > gestureActivationThreshold && deltaY > deltaX {
+                                                    gestureCommitted = true
+                                                    isAdjustingVolume = true
+                                                    gestureStartValue = volumeValue
+                                                    gestureStartY = gesture.startLocation.y
+                                                }
                                             }
-                                            let deltaY = gestureStartY - gesture.location.y
-                                            let sensitivity: CGFloat = 1.5 / geometry.size.height
-                                            let newValue = gestureStartValue + (deltaY * sensitivity)
-                                            volumeValue = min(max(newValue, 0), 1)
-                                            setSystemVolume(Float(volumeValue))
+
+                                            if gestureCommitted && isAdjustingVolume {
+                                                let deltaY = gestureStartY - gesture.location.y
+                                                let sensitivity: CGFloat = 1.5 / geometry.size.height
+                                                let newValue = gestureStartValue + (deltaY * sensitivity)
+                                                volumeValue = min(max(newValue, 0), 1)
+                                                setSystemVolume(Float(volumeValue))
+                                            }
                                         }
                                         .onEnded { _ in
+                                            gestureCommitted = false
                                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                                 withAnimation(.easeOut(duration: 0.3)) {
                                                     isAdjustingVolume = false
@@ -391,8 +417,8 @@ struct PlayerView: View {
                 .simultaneousGesture(
                     DragGesture(minimumDistance: 10)
                         .onChanged { gesture in
-                            // Only handle if EQ is not shown
-                            guard !showEQ else { return }
+                            // Only handle if EQ is not shown and not dragging slider
+                            guard !showEQ && !isDraggingSlider else { return }
 
                             let screenWidth = UIScreen.main.bounds.width
                             let screenHeight = UIScreen.main.bounds.height
@@ -401,35 +427,42 @@ struct PlayerView: View {
                             let leftThird = screenWidth / 3
                             let rightThird = screenWidth * 2 / 3
 
-                            // Ignore gestures in top/bottom 1/5 of screen
+                            // Ignore gestures in top/bottom 1/5 of screen (where slider is)
                             let topMargin = screenHeight / 5
                             let bottomMargin = screenHeight * 4 / 5
                             guard startY > topMargin && startY < bottomMargin else { return }
 
-                            if startX < leftThird {
-                                // Brightness
-                                if !isAdjustingBrightness && !isAdjustingVolume {
+                            // Check threshold before committing to brightness/volume adjustment
+                            if !gestureCommitted {
+                                let deltaY = abs(gesture.translation.height)
+                                let deltaX = abs(gesture.translation.width)
+
+                                // Only commit if vertical movement exceeds threshold AND is more vertical than horizontal
+                                guard deltaY > gestureActivationThreshold && deltaY > deltaX else { return }
+
+                                gestureCommitted = true
+                                gestureStartY = gesture.startLocation.y
+
+                                if startX < leftThird {
                                     isAdjustingBrightness = true
                                     gestureStartValue = brightnessValue
-                                    gestureStartY = gesture.startLocation.y
+                                    controlHideTimer?.invalidate()
+                                } else if startX > rightThird {
+                                    isAdjustingVolume = true
+                                    gestureStartValue = volumeValue
                                     controlHideTimer?.invalidate()
                                 }
+                            }
+
+                            // Apply adjustment after committed
+                            if gestureCommitted {
                                 if isAdjustingBrightness {
                                     let deltaY = gestureStartY - gesture.location.y
                                     let sensitivity: CGFloat = 1.5 / screenHeight
                                     let newValue = gestureStartValue + (deltaY * sensitivity)
                                     brightnessValue = min(max(newValue, 0), 1)
                                     UIScreen.main.brightness = brightnessValue
-                                }
-                            } else if startX > rightThird {
-                                // Volume
-                                if !isAdjustingVolume && !isAdjustingBrightness {
-                                    isAdjustingVolume = true
-                                    gestureStartValue = volumeValue
-                                    gestureStartY = gesture.startLocation.y
-                                    controlHideTimer?.invalidate()
-                                }
-                                if isAdjustingVolume {
+                                } else if isAdjustingVolume {
                                     let deltaY = gestureStartY - gesture.location.y
                                     let sensitivity: CGFloat = 1.5 / screenHeight
                                     let newValue = gestureStartValue + (deltaY * sensitivity)
@@ -439,6 +472,7 @@ struct PlayerView: View {
                             }
                         }
                         .onEnded { _ in
+                            gestureCommitted = false
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                 withAnimation(.easeOut(duration: 0.3)) {
                                     isAdjustingBrightness = false

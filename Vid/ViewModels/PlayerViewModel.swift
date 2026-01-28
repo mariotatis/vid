@@ -33,6 +33,9 @@ class PlayerViewModel: ObservableObject {
     private var audioFile: AVAudioFile?
     private var audioSampleRate: Double = 44100
     private var audioLengthSamples: AVAudioFramePosition = 0
+
+    // A/V Sync Constants
+    private let syncThresholdSeconds: Double = 0.04  // 40ms - human perception threshold
     
     init() {
         setupAudioSession()
@@ -113,13 +116,9 @@ class PlayerViewModel: ObservableObject {
     }
     
     private func addTimeObserver() {
-        // Sync Logic: We use AVPlayer's time as the master usually, 
-        // but since we are driving Audio separately, we should use PlayerNode's time?
-        // Actually, for simplicity and UI sync, we will continue to trust AVPlayer's clock 
-        // because the UI (Slider) is bound to it and VSync matters for video.
-        // We just need to make sure Audio doesn't drift too much.
-        // For this implementation, we will perform a "Blind Sync": Start both together.
-        
+        // AVPlayer is the master clock for video timing
+        // Audio sync is handled via event-based resync (seek, play/pause, time jumps)
+        // not periodic correction, to avoid audio interruptions
         let interval = CMTime(seconds: 0.5, preferredTimescale: 600)
         player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
             guard let self = self, !self.isSeeking else { return }
@@ -200,20 +199,24 @@ class PlayerViewModel: ObservableObject {
             if let file = audioFile {
                 audioSampleRate = file.processingFormat.sampleRate
                 audioLengthSamples = file.length
-                
-                playerNode.scheduleFile(file, at: nil, completionHandler: nil)
             }
         } catch {
             print("Failed to load audio file: \(error)")
         }
-        
-        // 3. Start Both
+
+        // 3. Start engine and prepare for synchronized playback
         if !engine.isRunning { try? engine.start() }
-        playerNode.play()
-        player.play()
-        
-        isPlaying = true
+
+        // 4. Start video first, then sync audio when video actually starts playing
+        // The timeControlStatus observer will call resyncAudio when player transitions to .playing
+        // This ensures audio starts in sync with the actual video playback start
         showPlayer = true
+        player.play()
+
+        // Schedule audio from the beginning - resyncAudio will be called when video starts
+        scheduleAudioFromStart()
+
+        isPlaying = true
         updateNowPlayingInfo()
         
         Task {
@@ -355,17 +358,26 @@ class PlayerViewModel: ObservableObject {
         }
     }
     
+    private func scheduleAudioFromStart() {
+        guard let file = audioFile else { return }
+        playerNode.stop()
+        playerNode.scheduleFile(file, at: nil, completionHandler: nil)
+    }
+
     private func resyncAudio(to time: Double, force: Bool = false) {
         // Sanitize input to prevent negative sample calculations
         let clampedTime = max(0, time)
         guard let file = audioFile else { return }
-        
+
         // 1. Calculate the target sample
+        // Note: We don't compensate for output latency here as it can cause position errors.
+        // The initial sync when AVPlayer starts handles alignment, and drift correction
+        // catches any significant divergence.
         var targetSample = AVAudioFramePosition(clampedTime * audioSampleRate)
-        
+
         // Ensure targetSample is within bounds (0 to length - 1)
         targetSample = max(0, min(targetSample, audioLengthSamples - 1))
-        
+
         // 2. Optimization: If we are already playing and very close to the target, don't interrupt
         // Unless we are 'forcing' a sync (e.g., manual seeker release)
         if playerNode.isPlaying && !force {
@@ -375,19 +387,19 @@ class PlayerViewModel: ObservableObject {
                 let currentSample = playerTime.sampleTime
                 let diff = abs(targetSample - currentSample)
                 let diffSeconds = Double(diff) / audioSampleRate
-                // If diff is less than 100ms, don't resync to avoid stutters
-                if diffSeconds < 0.1 { return }
+                // Use tighter threshold (40ms) - human A/V desync perception threshold
+                if diffSeconds < syncThresholdSeconds { return }
             }
         }
-        
+
         let wasPlaying = playerNode.isPlaying || player.timeControlStatus == .playing
-        
+
         // 3. Reschedule
         playerNode.stop()
         let remainingSamples = AVAudioFrameCount(max(0, audioLengthSamples - targetSample))
         if remainingSamples > 0 {
             playerNode.scheduleSegment(file, startingFrame: targetSample, frameCount: remainingSamples, at: nil, completionHandler: nil)
-            
+
             // 4. Resume if it was playing
             if wasPlaying {
                 if !engine.isRunning { try? engine.start() }
@@ -395,17 +407,17 @@ class PlayerViewModel: ObservableObject {
             }
         }
     }
-    
+
     func togglePlayPause() {
         if player.timeControlStatus == .playing {
             player.pause()
             playerNode.pause()
         } else {
             if !engine.isRunning { try? engine.start() }
-            
+
             // Resync audio with video before playing to ensure they are aligned
-            resyncAudio(to: player.currentTime().seconds)
-            
+            resyncAudio(to: player.currentTime().seconds, force: true)
+
             player.play()
             if !playerNode.isPlaying {
                 playerNode.play()
