@@ -36,6 +36,9 @@ class PlayerViewModel: ObservableObject {
 
     // A/V Sync Constants
     private let syncThresholdSeconds: Double = 0.04  // 40ms - human perception threshold
+
+    // Flag to prevent observer from resyncing during initial playback start
+    private var isStartingPlayback = false
     
     init() {
         setupAudioSession()
@@ -93,24 +96,32 @@ class PlayerViewModel: ObservableObject {
             .sink { [weak self] status in
                 guard let self = self else { return }
                 self.isPlaying = (status == .playing)
-                
+
                 if status == .playing {
-                    if !self.engine.isRunning { try? self.engine.start() }
-                    self.resyncAudio(to: self.player.currentTime().seconds)
+                    // Only resync if this is a resume from external source (Control Center, etc.)
+                    // NOT during initial playback start (we handle that in startPlayback)
+                    if !self.isStartingPlayback {
+                        if !self.engine.isRunning { try? self.engine.start() }
+                        // Resync audio to video position when resuming from external control
+                        self.resyncAudio(to: self.player.currentTime().seconds, force: true)
+                    }
                 } else if status == .paused {
                     self.playerNode.pause()
                 }
-                
+
                 self.updateNowPlayingInfo()
             }
             .store(in: &cancellables)
             
-        // Observe time jumps (e.g., seeking via system controls) to resync audio
+        // Observe time jumps (e.g., seeking via system controls like PiP skip buttons)
         NotificationCenter.default.publisher(for: AVPlayerItem.timeJumpedNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                guard let self = self, !self.isSeeking else { return }
-                self.resyncAudio(to: self.player.currentTime().seconds)
+                guard let self = self,
+                      !self.isSeeking,
+                      !self.isStartingPlayback else { return }
+                // Force resync on time jumps from external controls (PiP, Control Center)
+                self.resyncAudio(to: self.player.currentTime().seconds, force: true)
             }
             .store(in: &cancellables)
     }
@@ -207,16 +218,20 @@ class PlayerViewModel: ObservableObject {
         // 3. Start engine and prepare for synchronized playback
         if !engine.isRunning { try? engine.start() }
 
-        // 4. Start video first, then sync audio when video actually starts playing
-        // The timeControlStatus observer will call resyncAudio when player transitions to .playing
-        // This ensures audio starts in sync with the actual video playback start
+        // 4. Schedule audio and start both video and audio SIMULTANEOUSLY
+        // This is critical for A/V sync - both must start at the same time
+        isStartingPlayback = true
         showPlayer = true
-        player.play()
 
-        // Schedule audio from the beginning - resyncAudio will be called when video starts
+        // Schedule audio from the beginning
         scheduleAudioFromStart()
 
+        // Start both players together for synchronized playback
+        playerNode.play()
+        player.play()
+
         isPlaying = true
+        isStartingPlayback = false
         updateNowPlayingInfo()
         
         Task {
@@ -314,29 +329,31 @@ class PlayerViewModel: ObservableObject {
     
     private func setupInterruptionObserver() {
         NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] notification in
-            guard let userInfo = notification.userInfo,
+            guard let self = self,
+                  let userInfo = notification.userInfo,
                   let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
                   let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
-            
+
             if type == .began {
-                self?.playerNode.pause()
+                self.playerNode.pause()
                 // AVPlayer handles its own pause usually on interruption, but we sync state
             } else if type == .ended {
                 if let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt {
                     let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
                     if options.contains(.shouldResume) {
                         // Restart engine and resume if it was playing
-                        if !((self?.engine.isRunning) ?? false) {
-                            try? self?.engine.start()
+                        if !self.engine.isRunning {
+                            try? self.engine.start()
                         }
-                        
-                        // Resync audio time with video
-                        if let currentTime = self?.player.currentTime().seconds {
-                            self?.resyncAudio(to: currentTime)
+
+                        // Resync audio time with video and resume both
+                        let currentTime = self.player.currentTime().seconds
+                        self.resyncAudio(to: currentTime, force: true)
+
+                        self.player.play()
+                        if !self.playerNode.isPlaying {
+                            self.playerNode.play()
                         }
-                        
-                        self?.player.play()
-                        self?.playerNode.play()
                     }
                 }
             }
