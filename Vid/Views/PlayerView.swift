@@ -1,5 +1,6 @@
 import SwiftUI
 import AVKit
+import MediaPlayer
 
 enum AspectRatioMode: String, CaseIterable {
     case `default` = "Default"
@@ -43,36 +44,50 @@ struct PlayerView: View {
 
     @State private var centerToastMessage: String?
 
+    // Brightness/Volume gesture states
+    @State private var isAdjustingBrightness = false
+    @State private var isAdjustingVolume = false
+    @State private var brightnessValue: CGFloat = UIScreen.main.brightness
+    @State private var volumeValue: CGFloat = 0.5
+    @State private var gestureStartValue: CGFloat = 0
+    @State private var gestureStartY: CGFloat = 0
+
     private var isCurrentVideoLiked: Bool {
         guard let videoId = playerVM.currentVideo?.id else { return false }
         return settings.isVideoLiked(videoId)
     }
 
+    private var brightnessIcon: String {
+        if brightnessValue > 0.66 { return "sun.max.fill" }
+        if brightnessValue > 0.33 { return "sun.min.fill" }
+        return "sun.min"
+    }
+
+    private var volumeIcon: String {
+        if volumeValue == 0 { return "speaker.slash.fill" }
+        if volumeValue > 0.66 { return "speaker.wave.3.fill" }
+        if volumeValue > 0.33 { return "speaker.wave.2.fill" }
+        return "speaker.wave.1.fill"
+    }
+
     var body: some View {
         ZStack {
             Color.black.edgesIgnoringSafeArea(.all)
-            
+
+            // Hidden volume view to suppress system HUD
+            HiddenVolumeView()
+                .frame(width: 0, height: 0)
+
             // Custom Video Player (Hidden Controls)
             GeometryReader { geometry in
                 let ratio = settings.aspectRatioMode.ratioValue
-                
+
                 CustomVideoPlayer(player: playerVM.player, videoGravity: settings.aspectRatioMode.gravity)
                     .edgesIgnoringSafeArea(.all)
                     .if(ratio != nil) { view in
                         view.aspectRatio(ratio!, contentMode: .fit)
                     }
                     .frame(width: geometry.size.width, height: geometry.size.height)
-                    .onTapGesture {
-                        withAnimation(.easeOut(duration: 0.15)) {
-                            if showControls {
-                                showControls = false
-                                controlHideTimer?.invalidate()
-                            } else {
-                                showControls = true
-                                resetControlTimer()
-                            }
-                        }
-                    }
             }
             
             // Controls Overlay
@@ -276,6 +291,27 @@ struct PlayerView: View {
                 }
             }
 
+            // Brightness/Volume Progress Bar Overlays
+            if isAdjustingBrightness {
+                VerticalProgressBar(
+                    value: brightnessValue,
+                    icon: brightnessIcon,
+                    isLeft: true
+                )
+                .allowsHitTesting(false)
+                .transition(.opacity.animation(.easeOut(duration: 0.15)))
+            }
+
+            if isAdjustingVolume {
+                VerticalProgressBar(
+                    value: volumeValue,
+                    icon: volumeIcon,
+                    isLeft: false
+                )
+                .allowsHitTesting(false)
+                .transition(.opacity.animation(.easeOut(duration: 0.15)))
+            }
+
             // Center Toast Overlay (for aspect ratio and shuffle)
             if let message = centerToastMessage {
                 VStack {
@@ -292,13 +328,87 @@ struct PlayerView: View {
                     Spacer()
                         .frame(height: 180)
                 }
+                .allowsHitTesting(false)
             }
+
+            // Gesture Overlay - sits on top of everything (disabled when controls visible)
+            GeometryReader { geometry in
+                HStack(spacing: 0) {
+                    // Left zone - Brightness control
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 10)
+                                .onChanged { gesture in
+                                    if !isAdjustingBrightness {
+                                        isAdjustingBrightness = true
+                                        gestureStartValue = brightnessValue
+                                        gestureStartY = gesture.startLocation.y
+                                    }
+                                    let deltaY = gestureStartY - gesture.location.y
+                                    let sensitivity: CGFloat = 1.5 / geometry.size.height
+                                    let newValue = gestureStartValue + (deltaY * sensitivity)
+                                    brightnessValue = min(max(newValue, 0), 1)
+                                    UIScreen.main.brightness = brightnessValue
+                                }
+                                .onEnded { _ in
+                                    withAnimation(.easeOut(duration: 0.3)) {
+                                        isAdjustingBrightness = false
+                                    }
+                                }
+                        )
+                        .onTapGesture {
+                            toggleControls()
+                        }
+                        .frame(width: geometry.size.width / 3)
+
+                    // Middle zone - Tap to toggle controls
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            toggleControls()
+                        }
+                        .frame(width: geometry.size.width / 3)
+
+                    // Right zone - Volume control
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 10)
+                                .onChanged { gesture in
+                                    if !isAdjustingVolume {
+                                        isAdjustingVolume = true
+                                        gestureStartValue = volumeValue
+                                        gestureStartY = gesture.startLocation.y
+                                    }
+                                    let deltaY = gestureStartY - gesture.location.y
+                                    let sensitivity: CGFloat = 1.5 / geometry.size.height
+                                    let newValue = gestureStartValue + (deltaY * sensitivity)
+                                    volumeValue = min(max(newValue, 0), 1)
+                                    setSystemVolume(Float(volumeValue))
+                                }
+                                .onEnded { _ in
+                                    withAnimation(.easeOut(duration: 0.3)) {
+                                        isAdjustingVolume = false
+                                    }
+                                }
+                        )
+                        .onTapGesture {
+                            toggleControls()
+                        }
+                        .frame(width: geometry.size.width / 3)
+                }
+            }
+            .edgesIgnoringSafeArea(.all)
+            .allowsHitTesting(!showControls)
         }
         .onAppear {
             resetControlTimer()
             if focusedElement == nil {
                 focusedElement = .playerPlayPause
             }
+            brightnessValue = UIScreen.main.brightness
+            volumeValue = getCurrentVolume()
         }
         .onDisappear {
             controlHideTimer?.invalidate()
@@ -464,6 +574,19 @@ struct PlayerView: View {
         return String(format: "%d:%02d", m, s)
     }
     
+    private func toggleControls() {
+        withAnimation(.easeOut(duration: 0.15)) {
+            if showControls {
+                showControls = false
+                showEQ = false
+                controlHideTimer?.invalidate()
+            } else {
+                showControls = true
+                resetControlTimer()
+            }
+        }
+    }
+
     private func cycleAspectRatio() {
         let all = AspectRatioMode.allCases
         if let idx = all.firstIndex(of: settings.aspectRatioMode) {
@@ -484,6 +607,15 @@ struct PlayerView: View {
                 }
             }
         }
+    }
+
+    private func setSystemVolume(_ volume: Float) {
+        VolumeController.shared.setVolume(volume)
+    }
+
+    private func getCurrentVolume() -> CGFloat {
+        let audioSession = AVAudioSession.sharedInstance()
+        return CGFloat(audioSession.outputVolume)
     }
 }
 
@@ -566,4 +698,97 @@ struct ResetButtonStyle: ViewModifier {
                 .cornerRadius(12)
         }
     }
+}
+
+struct VerticalProgressBar: View {
+    let value: CGFloat // 0.0 to 1.0
+    let icon: String
+    let isLeft: Bool
+
+    var body: some View {
+        HStack {
+            if !isLeft { Spacer() }
+
+            VStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundColor(.white)
+                    .frame(height: 24)
+
+                ZStack(alignment: .bottom) {
+                    // Background
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.white.opacity(0.3))
+                        .frame(width: 6, height: 120)
+
+                    // Fill
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.white)
+                        .frame(width: 6, height: 120 * value)
+                }
+            }
+            .padding(.vertical, 16)
+            .padding(.horizontal, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(.ultraThinMaterial)
+                    .environment(\.colorScheme, .dark)
+            )
+
+            if isLeft { Spacer() }
+        }
+        .padding(.horizontal, 50)
+    }
+}
+
+// Hidden MPVolumeView to suppress system volume HUD and provide volume control
+class VolumeController {
+    static let shared = VolumeController()
+    private var volumeView: MPVolumeView?
+    private var volumeSlider: UISlider?
+
+    func setup() -> MPVolumeView {
+        let view = MPVolumeView(frame: CGRect(x: -2000, y: -2000, width: 100, height: 100))
+        view.showsVolumeSlider = true
+        self.volumeView = view
+
+        // Find slider after a brief delay to ensure it's loaded
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.volumeSlider = self?.findSlider(in: view)
+        }
+        return view
+    }
+
+    private func findSlider(in view: UIView) -> UISlider? {
+        if let slider = view as? UISlider {
+            return slider
+        }
+        for subview in view.subviews {
+            if let slider = findSlider(in: subview) {
+                return slider
+            }
+        }
+        return nil
+    }
+
+    func setVolume(_ value: Float) {
+        // Try cached slider first
+        if let slider = volumeSlider {
+            slider.value = value
+            return
+        }
+        // Fallback: find slider again
+        if let view = volumeView, let slider = findSlider(in: view) {
+            volumeSlider = slider
+            slider.value = value
+        }
+    }
+}
+
+struct HiddenVolumeView: UIViewRepresentable {
+    func makeUIView(context: Context) -> MPVolumeView {
+        VolumeController.shared.setup()
+    }
+
+    func updateUIView(_ uiView: MPVolumeView, context: Context) {}
 }
