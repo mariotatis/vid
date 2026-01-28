@@ -40,6 +40,8 @@ class PlayerViewModel: ObservableObject {
         setupObservers()
         addTimeObserver()
         setupRemoteCommandCenter()
+        setupInterruptionObserver()
+        setupRouteChangeObserver()
     }
     
     private func setupAudioSession() {
@@ -79,6 +81,15 @@ class PlayerViewModel: ObservableObject {
         NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime)
             .sink { [weak self] _ in
                 self?.playNext()
+            }
+            .store(in: &cancellables)
+            
+        // Observe player status to keep isPlaying in sync
+        player.publisher(for: \.timeControlStatus)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] status in
+                self?.isPlaying = (status == .playing)
+                self?.updateNowPlayingInfo()
             }
             .store(in: &cancellables)
     }
@@ -285,16 +296,78 @@ class PlayerViewModel: ObservableObject {
         NSUserActivity.deleteAllSavedUserActivities { }
     }
     
+    private func setupInterruptionObserver() {
+        NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] notification in
+            guard let userInfo = notification.userInfo,
+                  let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+                  let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
+            
+            if type == .began {
+                self?.playerNode.pause()
+                // AVPlayer handles its own pause usually on interruption, but we sync state
+            } else if type == .ended {
+                if let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt {
+                    let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
+                    if options.contains(.shouldResume) {
+                        // Restart engine and resume if it was playing
+                        if !((self?.engine.isRunning) ?? false) {
+                            try? self?.engine.start()
+                        }
+                        
+                        // Resync audio time with video
+                        if let currentTime = self?.player.currentTime().seconds {
+                            self?.resyncAudio(to: currentTime)
+                        }
+                        
+                        self?.player.play()
+                        self?.playerNode.play()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func setupRouteChangeObserver() {
+        NotificationCenter.default.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) { [weak self] notification in
+            guard let userInfo = notification.userInfo,
+                  let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
+                  let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else { return }
+            
+            if reason == .oldDeviceUnavailable {
+                // E.g., Headphones unplugged
+                if self?.player.timeControlStatus == .playing {
+                    self?.togglePlayPause() // Pause
+                }
+            }
+        }
+    }
+    
+    private func resyncAudio(to time: Double) {
+        if let file = audioFile {
+            playerNode.stop()
+            let startSample = AVAudioFramePosition(time * audioSampleRate)
+            let remainingSamples = AVAudioFrameCount(max(0, audioLengthSamples - startSample))
+            if remainingSamples > 0 {
+                playerNode.scheduleSegment(file, startingFrame: startSample, frameCount: remainingSamples, at: nil, completionHandler: nil)
+            }
+        }
+    }
+    
     func togglePlayPause() {
-        if isPlaying {
+        if player.timeControlStatus == .playing {
             player.pause()
             playerNode.pause()
         } else {
             if !engine.isRunning { try? engine.start() }
+            
+            // Resync audio with video before playing to ensure they are aligned
+            let currentTime = player.currentTime().seconds
+            resyncAudio(to: currentTime)
+            
             player.play()
             playerNode.play()
         }
-        isPlaying.toggle()
+        // isPlaying will be updated by the observer on timeControlStatus
         updateNowPlayingInfo()
     }
     
