@@ -13,20 +13,6 @@ struct AddVideosToPlaylistView: View {
     @State private var showSearch = false
     @FocusState private var focusedElement: AppFocus?
 
-    enum SortOption {
-        case name, duration, recent, size, mostWatched
-    }
-
-    // Default order per sort option
-    private func defaultOrder(for option: SortOption) -> Bool {
-        switch option {
-        case .name:
-            return true // Ascending
-        case .duration, .recent, .size, .mostWatched:
-            return false // Descending
-        }
-    }
-
     var currentPlaylist: Playlist? {
         playlistManager.playlists.first(where: { $0.id == playlistId })
     }
@@ -36,92 +22,27 @@ struct AddVideosToPlaylistView: View {
         return videoManager.videos.filter { !playlist.videoIds.contains($0.id) }
     }
 
-    var filteredVideos: [Video] {
-        if searchText.isEmpty {
-            return availableVideos
-        } else {
-            return availableVideos.filter { video in
-                let name = video.name.folding(options: .diacriticInsensitive, locale: .current)
-                let query = searchText.folding(options: .diacriticInsensitive, locale: .current)
-                return name.localizedCaseInsensitiveContains(query)
-            }
-        }
-    }
-
     var sortedVideos: [Video] {
-        return filteredVideos.sorted { v1, v2 in
-            switch sortOption {
-            case .name:
-                return sortAscending ? v1.name < v2.name : v1.name > v2.name
-            case .duration:
-                return sortAscending ? v1.duration < v2.duration : v1.duration > v2.duration
-            case .recent:
-                if v1.isWatched != v2.isWatched {
-                    return !v1.isWatched
-                }
-                return sortAscending ? v1.dateAdded < v2.dateAdded : v1.dateAdded > v2.dateAdded
-            case .size:
-                return sortAscending ? v1.fileSize < v2.fileSize : v1.fileSize > v2.fileSize
-            case .mostWatched:
-                return sortAscending ? v1.watchCount < v2.watchCount : v1.watchCount > v2.watchCount
-            }
-        }
+        availableVideos
+            .filtered(by: searchText)
+            .sorted(by: sortOption, ascending: sortAscending)
     }
 
     var body: some View {
         NavigationView {
             ZStack(alignment: .bottom) {
                 if availableVideos.isEmpty {
-                    // Empty state
-                    VStack(spacing: 24) {
-                        // Icon with shadow
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.gray.opacity(0.15))
-                            .frame(width: 120, height: 120)
-                            .overlay(
-                                Image(systemName: videoManager.videos.isEmpty ? "film.stack" : "checkmark.circle")
-                                    .font(.system(size: 44, weight: .medium))
-                                    .foregroundColor(Color.gray.opacity(0.6))
-                            )
-                            .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
-                            .padding(.bottom, 8)
-
-                        // Text content
-                        VStack(spacing: 12) {
-                            Text(videoManager.videos.isEmpty ? "No videos in library" : "All videos added")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.primary)
-
-                            Text(videoManager.videos.isEmpty
-                                ? "Import videos to your library first, then add them to this playlist."
-                                : "All your videos are already in this playlist.")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 40)
-                        }
-
-                        // Close button
-                        Button(action: {
-                            dismiss()
-                        }) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "xmark.circle")
-                                    .font(.system(size: 16, weight: .semibold))
-                                Text("Close")
-                                    .font(.headline)
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 14)
-                            .background(Color(white: 0.25))
-                            .cornerRadius(12)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.top, 8)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    EmptyStateView(
+                        icon: videoManager.videos.isEmpty ? "film.stack" : "checkmark.circle",
+                        title: videoManager.videos.isEmpty ? "No videos in library" : "All videos added",
+                        message: videoManager.videos.isEmpty
+                            ? "Import videos to your library first, then add them to this playlist."
+                            : "All your videos are already in this playlist.",
+                        showBadge: false,
+                        action: { dismiss() },
+                        actionTitle: "Close",
+                        actionIcon: "xmark.circle"
+                    )
                 } else {
                     List {
                         ForEach(sortedVideos) { video in
@@ -239,38 +160,19 @@ struct AddVideosToPlaylistView: View {
 
                             Menu {
                                 Section {
-                                    Button(action: {
-                                        sortOption = .name
-                                        sortAscending = defaultOrder(for: .name)
-                                    }) {
+                                    Button(action: { sortOption = .name; sortAscending = SortOption.name.defaultAscending }) {
                                         Label("Name", systemImage: sortOption == .name ? "checkmark" : "")
                                     }
-
-                                    Button(action: {
-                                        sortOption = .duration
-                                        sortAscending = defaultOrder(for: .duration)
-                                    }) {
+                                    Button(action: { sortOption = .duration; sortAscending = SortOption.duration.defaultAscending }) {
                                         Label("Duration", systemImage: sortOption == .duration ? "checkmark" : "")
                                     }
-
-                                    Button(action: {
-                                        sortOption = .recent
-                                        sortAscending = defaultOrder(for: .recent)
-                                    }) {
+                                    Button(action: { sortOption = .recent; sortAscending = SortOption.recent.defaultAscending }) {
                                         Label("Recent", systemImage: sortOption == .recent ? "checkmark" : "")
                                     }
-
-                                    Button(action: {
-                                        sortOption = .size
-                                        sortAscending = defaultOrder(for: .size)
-                                    }) {
+                                    Button(action: { sortOption = .size; sortAscending = SortOption.size.defaultAscending }) {
                                         Label("Size", systemImage: sortOption == .size ? "checkmark" : "")
                                     }
-
-                                    Button(action: {
-                                        sortOption = .mostWatched
-                                        sortAscending = defaultOrder(for: .mostWatched)
-                                    }) {
+                                    Button(action: { sortOption = .mostWatched; sortAscending = SortOption.mostWatched.defaultAscending }) {
                                         Label("Most Watched", systemImage: sortOption == .mostWatched ? "checkmark" : "")
                                     }
                                 }
