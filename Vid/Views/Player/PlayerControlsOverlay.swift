@@ -169,6 +169,9 @@ struct PlayerControlsOverlay: View {
                     .padding(.horizontal, 8)
             }
         }
+        // Block tap gesture propagation for top bar area
+        .contentShape(Rectangle())
+        .onTapGesture { }
         .padding(.horizontal, 12)
         .padding(.vertical, 12)
     }
@@ -217,6 +220,9 @@ struct PlayerControlsOverlay: View {
             .foregroundColor(.white)
             .focused($focusedElement, equals: .playerNext)
         }
+        // Block tap gesture propagation for playback controls area
+        .contentShape(Rectangle())
+        .onTapGesture { }
         .padding(.bottom, 35)
     }
 
@@ -225,7 +231,7 @@ struct PlayerControlsOverlay: View {
     @ViewBuilder
     private var bottomSeekBar: some View {
         HStack {
-            Text(formatTime(playerVM.currentTime))
+            Text(formatTime(scrubbingTime ?? playerVM.currentTime))
                 .foregroundColor(.white)
                 .font(.caption)
                 .monospacedDigit()
@@ -246,17 +252,12 @@ struct PlayerControlsOverlay: View {
                         playerVM.isSeeking = true
                         invalidateControlTimer()
                     } else {
-                        // Only commit seek if we were actually scrubbing and it was a real intentional move
+                        // Commit seek when editing ends
                         if let st = scrubbingTime {
-                            let delta = abs(st - playerVM.currentTime)
-                            // If move is > 1 second, we consider it a real seek.
-                            // This ignores simple taps or presses that might move the thumb micro-amounts.
-                            if delta > 1.0 {
-                                playerVM.seek(to: st)
-                            } else {
-                                // Was just a tap or press-and-hold without dragging
-                                playerVM.isSeeking = false
-                            }
+                            playerVM.seek(to: st)
+                        } else {
+                            // No scrubbing occurred, just clear seeking state
+                            playerVM.isSeeking = false
                         }
                         scrubbingTime = nil
                         resetControlTimer()
@@ -266,12 +267,18 @@ struct PlayerControlsOverlay: View {
             }
             .vidFocusHighlight()
             .focused($focusedElement, equals: .playerSlider)
+            // Prevent tap gesture from propagating to parent overlay
+            .contentShape(Rectangle())
+            .onTapGesture { }
 
             Text(formatTime(playerVM.duration))
                 .foregroundColor(.white)
                 .font(.caption)
                 .monospacedDigit()
         }
+        // Block tap gesture propagation for entire seek bar area
+        .contentShape(Rectangle())
+        .onTapGesture { }
         .padding(.horizontal, 30)
         .padding(.bottom, 60)
     }

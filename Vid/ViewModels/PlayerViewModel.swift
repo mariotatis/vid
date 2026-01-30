@@ -35,11 +35,18 @@ class PlayerViewModel: ObservableObject {
     private var audioLengthSamples: AVAudioFramePosition = 0
 
     // A/V Sync Constants
-    private let syncThresholdSeconds: Double = 0.04  // 40ms - human perception threshold
+    private let syncThresholdSeconds: Double = 0.025  // 25ms - tighter threshold, below human perception (~45ms)
 
     // Flag to prevent observer from resyncing during initial playback start
     private var isStartingPlayback = false
-    
+
+    // Cancellable for player item status observation during preload
+    private var preloadCancellable: AnyCancellable?
+
+    // Playback ID to prevent stale completion handlers from interfering
+    // Incremented each time startPlayback() is called
+    private var currentPlaybackId: UInt64 = 0
+
     init() {
         setupAudioSession()
         setupAudioEngine()
@@ -64,12 +71,12 @@ class PlayerViewModel: ObservableObject {
         // Attach nodes
         engine.attach(playerNode)
         engine.attach(eqNode)
-        
-        // Connect nodes: Player -> EQ -> MainMixer
+
+        // Initial connection with default format (will be reconnected per-file)
         let format = engine.outputNode.inputFormat(forBus: 0)
         engine.connect(playerNode, to: eqNode, format: format)
         engine.connect(eqNode, to: engine.mainMixerNode, format: format)
-        
+
         // Configure EQ Bands
         let frequencies: [Float] = [60, 150, 400, 1000, 2400, 15000]
         for (i, freq) in frequencies.enumerated() {
@@ -79,8 +86,24 @@ class PlayerViewModel: ObservableObject {
             band.filterType = (i == 0) ? .lowShelf : (i == frequencies.count - 1) ? .highShelf : .parametric
             band.bandwidth = 0.5
         }
-        
+
         try? engine.start()
+    }
+
+    /// Reconnects audio engine nodes with the format of the current audio file
+    private func reconnectAudioNodes(with format: AVAudioFormat) {
+        // Stop engine to allow reconnection
+        let wasRunning = engine.isRunning
+        if wasRunning { engine.stop() }
+
+        // Disconnect and reconnect with new format
+        engine.disconnectNodeOutput(playerNode)
+        engine.disconnectNodeOutput(eqNode)
+        engine.connect(playerNode, to: eqNode, format: format)
+        engine.connect(eqNode, to: engine.mainMixerNode, format: format)
+
+        // Restart engine
+        if wasRunning { try? engine.start() }
     }
     
     private func setupObservers() {
@@ -96,6 +119,12 @@ class PlayerViewModel: ObservableObject {
             .sink { [weak self] status in
                 guard let self = self else { return }
                 self.isPlaying = (status == .playing)
+
+                // Skip audio adjustments while seeking - seek() handles audio sync
+                guard !self.isSeeking else {
+                    self.updateNowPlayingInfo()
+                    return
+                }
 
                 if status == .playing {
                     // Only resync if this is a resume from external source (Control Center, etc.)
@@ -120,8 +149,21 @@ class PlayerViewModel: ObservableObject {
                 guard let self = self,
                       !self.isSeeking,
                       !self.isStartingPlayback else { return }
-                // Force resync on time jumps from external controls (PiP, Control Center)
-                self.resyncAudio(to: self.player.currentTime().seconds, force: true)
+                
+                // Use synchronized preroll for PiP skip to ensure A/V sync
+                let currentTime = self.player.currentTime()
+                
+                // If we were playing, restart synchronized.
+                // If we were paused, just resync the audio engine state but stay paused.
+                if self.player.timeControlStatus == .playing {
+                    self.player.pause()
+                    self.playerNode.stop()
+                    self.isStartingPlayback = true
+                    self.prerollAndStartSynchronized(from: currentTime)
+                } else {
+                     // Just resync audio position without starting playback
+                    self.resyncAudio(to: currentTime.seconds, force: true)
+                }
             }
             .store(in: &cancellables)
     }
@@ -183,13 +225,67 @@ class PlayerViewModel: ObservableObject {
             eqNode.bands[i].gain = bandGain + preampGain
         }
     }
-    
+
+    // MARK: - Audio Sync Helpers
+
+    #if DEBUG
+    private func logSync(_ message: String) {
+        let timestamp = Date().timeIntervalSince1970
+        print("[SYNC \(String(format: "%.3f", timestamp))]: \(message)")
+    }
+    #else
+    private func logSync(_ message: String) {}
+    #endif
+
+    /// Validates and repairs audio engine state if needed
+    private func ensureAudioEngineHealthy() -> Bool {
+        guard engine.isRunning else {
+            do {
+                try engine.start()
+                logSync("Audio engine started successfully")
+                return engine.isRunning
+            } catch {
+                logSync("Failed to start audio engine: \(error)")
+                return false
+            }
+        }
+        return true
+    }
+
+    /// Prepares audio file for playback, returns success status
+    private func prepareAudioFile(for video: Video) -> Bool {
+        do {
+            audioFile = try AVAudioFile(forReading: video.url)
+            if let file = audioFile {
+                audioSampleRate = file.processingFormat.sampleRate
+                audioLengthSamples = file.length
+                logSync("Audio file loaded: \(video.url.lastPathComponent), sampleRate: \(audioSampleRate), samples: \(audioLengthSamples)")
+                return true
+            }
+            return false
+        } catch {
+            logSync("Failed to load audio file: \(error)")
+            return false
+        }
+    }
+
     private func startPlayback() {
         guard let video = currentVideo else { return }
-        
-        // Stop current audio immediately to prevent transition "blips"
+
+        // Increment playback ID to invalidate any stale completion handlers
+        currentPlaybackId &+= 1
+        let playbackId = currentPlaybackId
+
+        logSync("Starting playback for: \(video.url.lastPathComponent) [id=\(playbackId)]")
+
+        // Cancel any previous preload
+        preloadCancellable?.cancel()
+        preloadCancellable = nil
+
+        // Stop and fully reset audio node to clear any pending schedules
         playerNode.stop()
-        
+        playerNode.reset()
+
         // Update watch status
         if let index = VideoManager.shared.videos.firstIndex(where: { $0.id == video.id }) {
             VideoManager.shared.videos[index].isWatched = true
@@ -197,43 +293,67 @@ class PlayerViewModel: ObservableObject {
             VideoManager.shared.saveVideosToDisk()
         }
 
-        
-        // 1. Prepare AVPlayer (Video Only - Muted)
+        isStartingPlayback = true
+        showPlayer = true
+
+        // Ensure audio engine is healthy before proceeding
+        _ = ensureAudioEngineHealthy()
+
+        // 1. Prepare AVAudioEngine (Audio) FIRST - validate before video setup
+        let audioReady = prepareAudioFile(for: video)
+        if !audioReady {
+            // Wait briefly and retry once (file system timing)
+            logSync("Audio file load failed, retrying after 100ms...")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                guard let self = self, self.currentPlaybackId == playbackId else {
+                    // Playback was superseded by another track
+                    return
+                }
+                let retrySuccess = self.prepareAudioFile(for: video)
+                if !retrySuccess {
+                    self.logSync("WARNING: Playing video without audio after retry")
+                } else {
+                    // Reconnect audio nodes with correct format for this video
+                    self.reconnectAudioNodes(with: self.audioFile!.processingFormat)
+                }
+                self.continuePlaybackSetup(for: video, playbackId: playbackId)
+            }
+            return
+        }
+
+        // Reconnect audio nodes with correct format for this video
+        if let file = audioFile {
+            reconnectAudioNodes(with: file.processingFormat)
+        }
+
+        continuePlaybackSetup(for: video, playbackId: playbackId)
+    }
+
+    /// Continues playback setup after audio file is prepared (or retry completed)
+    private func continuePlaybackSetup(for video: Video, playbackId: UInt64) {
+        // 2. Prepare AVPlayer (Video Only - Muted)
         let playerItem = AVPlayerItem(url: video.url)
         player.replaceCurrentItem(with: playerItem)
         player.isMuted = true
         player.allowsExternalPlayback = true
-        
-        // 2. Prepare AVAudioEngine (Audio)
-        do {
-            audioFile = try AVAudioFile(forReading: video.url)
-            if let file = audioFile {
-                audioSampleRate = file.processingFormat.sampleRate
-                audioLengthSamples = file.length
+        // Disable automatic stalling for precise timing control
+        player.automaticallyWaitsToMinimizeStalling = false
+
+        // 3. Wait for video to be ready to play, then preroll and start synchronized
+        preloadCancellable = playerItem.publisher(for: \.status)
+            .filter { $0 == .readyToPlay }
+            .first()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self = self, self.currentPlaybackId == playbackId else {
+                    // Playback was superseded by another track
+                    return
+                }
+                self.logSync("PlayerItem ready, starting synchronized playback [id=\(playbackId)]")
+                self.prerollAndStartSynchronized(from: .zero, playbackId: playbackId)
             }
-        } catch {
-            print("Failed to load audio file: \(error)")
-        }
 
-        // 3. Start engine and prepare for synchronized playback
-        if !engine.isRunning { try? engine.start() }
-
-        // 4. Schedule audio and start both video and audio SIMULTANEOUSLY
-        // This is critical for A/V sync - both must start at the same time
-        isStartingPlayback = true
-        showPlayer = true
-
-        // Schedule audio from the beginning
-        scheduleAudioFromStart()
-
-        // Start both players together for synchronized playback
-        playerNode.play()
-        player.play()
-
-        isPlaying = true
-        isStartingPlayback = false
-        updateNowPlayingInfo()
-        
+        // Get duration
         Task {
             let duration = playerItem.asset.duration
             let seconds = CMTimeGetSeconds(duration)
@@ -242,9 +362,91 @@ class PlayerViewModel: ObservableObject {
                 self.updateNowPlayingInfo()
             }
         }
-        
+
         // 4. Donate User Activity for Siri (iOS 15 legacy support)
         donatePlayPlaylistActivity(for: video)
+    }
+
+    /// Plays video only (fallback when audio is unavailable)
+    private func playVideoOnly(from time: CMTime) {
+        logSync("Playing video only (no audio)")
+        player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
+            self?.player.play()
+            self?.isPlaying = true
+            self?.updateNowPlayingInfo()
+            // Delay clearing isStartingPlayback to avoid spurious notifications
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                self?.isStartingPlayback = false
+            }
+        }
+    }
+
+    /// Starts audio and video playback in sync (simplified version matching resyncAudio pattern)
+    private func prerollAndStartSynchronized(from time: CMTime, playbackId: UInt64? = nil) {
+        // Validate audio is ready (unless video-only mode)
+        guard let file = audioFile else {
+            playVideoOnly(from: time)
+            return
+        }
+
+        // Ensure engine is running
+        if !engine.isRunning { try? engine.start() }
+        guard engine.isRunning else {
+            logSync("ERROR: Cannot start audio engine, falling back to video-only")
+            playVideoOnly(from: time)
+            return
+        }
+
+        // Calculate audio start frame
+        let startTimeSeconds = max(0, CMTimeGetSeconds(time))
+        var targetSample = AVAudioFramePosition(startTimeSeconds * audioSampleRate)
+        targetSample = max(0, min(targetSample, audioLengthSamples - 1))
+
+        // Schedule audio segment (same pattern as resyncAudio which works)
+        let remainingSamples = AVAudioFrameCount(max(0, audioLengthSamples - targetSample))
+        guard remainingSamples > 0 else {
+            playVideoOnly(from: time)
+            return
+        }
+
+        playerNode.stop()
+        playerNode.scheduleSegment(file, startingFrame: targetSample, frameCount: remainingSamples, at: nil, completionHandler: nil)
+
+        // Seek video to target time, then start both
+        player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] finished in
+            guard let self = self, finished else { return }
+            // Check if playback was superseded
+            if let id = playbackId, self.currentPlaybackId != id { return }
+
+            // Start engine if needed
+            if !self.engine.isRunning { try? self.engine.start() }
+
+            // Calculate a near-future host time for synchronized start
+            var timebaseInfo = mach_timebase_info()
+            mach_timebase_info(&timebaseInfo)
+            let nanosPerHostTick = Double(timebaseInfo.numer) / Double(timebaseInfo.denom)
+
+            let hostTimeNow = mach_absolute_time()
+            let delayNanos: UInt64 = 50_000_000  // 50ms delay for sync
+            let delayHostTicks = UInt64(Double(delayNanos) / nanosPerHostTick)
+            let startHostTime = hostTimeNow + delayHostTicks
+
+            // Start audio at host time
+            let audioStartTime = AVAudioTime(hostTime: startHostTime)
+            self.playerNode.play(at: audioStartTime)
+
+            // Start video at same host time
+            let cmHostTime = CMClockMakeHostTimeFromSystemUnits(startHostTime)
+            self.player.setRate(1.0, time: time, atHostTime: cmHostTime)
+
+            self.isPlaying = true
+            self.updateNowPlayingInfo()
+
+            // Delay clearing isStartingPlayback
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                self.isStartingPlayback = false
+            }
+        }
     }
     
     private func donatePlayPlaylistActivity(for video: Video) {
@@ -265,19 +467,50 @@ class PlayerViewModel: ObservableObject {
     
     func seek(to time: Double) {
         self.isSeeking = true
+
+        // Capture play state BEFORE seeking - we'll restore this state after
+        let wasPlaying = player.timeControlStatus == .playing
+
         // Seek Video
         let cmTime = CMTime(seconds: time, preferredTimescale: 600)
         player.seek(to: cmTime, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] finished in
             guard let self = self, finished else { return }
-            
-            // Seek Audio - centrally managed, bypass epsilon check for manual seek
-            self.resyncAudio(to: time, force: true)
-            
-            self.isSeeking = false
+
+            // Reschedule audio at new position (don't auto-play, we control that)
+            self.rescheduleAudioOnly(to: time)
+
+            // Restore play state - only play if we were playing before
+            if wasPlaying {
+                // Start audio playback
+                if !self.engine.isRunning { try? self.engine.start() }
+                self.playerNode.play()
+            }
+
             self.updateNowPlayingInfo()
+            
+            // Delay clearing isSeeking to protect against late-arriving timeJumped notifications
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                self.isSeeking = false
+            }
         }
-        
+
         currentTime = time
+    }
+
+    /// Reschedules audio at the given time WITHOUT starting playback
+    private func rescheduleAudioOnly(to time: Double) {
+        guard let file = audioFile else { return }
+
+        let clampedTime = max(0, time)
+        var targetSample = AVAudioFramePosition(clampedTime * audioSampleRate)
+        targetSample = max(0, min(targetSample, audioLengthSamples - 1))
+
+        playerNode.stop()
+
+        let remainingSamples = AVAudioFrameCount(max(0, audioLengthSamples - targetSample))
+        if remainingSamples > 0 {
+            playerNode.scheduleSegment(file, startingFrame: targetSample, frameCount: remainingSamples, at: nil, completionHandler: nil)
+        }
     }
     
     func playNext() {
@@ -375,12 +608,6 @@ class PlayerViewModel: ObservableObject {
         }
     }
     
-    private func scheduleAudioFromStart() {
-        guard let file = audioFile else { return }
-        playerNode.stop()
-        playerNode.scheduleFile(file, at: nil, completionHandler: nil)
-    }
-
     private func resyncAudio(to time: Double, force: Bool = false) {
         // Sanitize input to prevent negative sample calculations
         let clampedTime = max(0, time)
@@ -404,12 +631,13 @@ class PlayerViewModel: ObservableObject {
                 let currentSample = playerTime.sampleTime
                 let diff = abs(targetSample - currentSample)
                 let diffSeconds = Double(diff) / audioSampleRate
-                // Use tighter threshold (40ms) - human A/V desync perception threshold
                 if diffSeconds < syncThresholdSeconds { return }
             }
         }
 
         let wasPlaying = playerNode.isPlaying || player.timeControlStatus == .playing
+
+        logSync("Resyncing audio to \(clampedTime)s (force: \(force), wasPlaying: \(wasPlaying))")
 
         // 3. Reschedule
         playerNode.stop()
@@ -417,10 +645,22 @@ class PlayerViewModel: ObservableObject {
         if remainingSamples > 0 {
             playerNode.scheduleSegment(file, startingFrame: targetSample, frameCount: remainingSamples, at: nil, completionHandler: nil)
 
-            // 4. Resume if it was playing
+            // 4. Resume if it was playing, with precise timing
             if wasPlaying {
                 if !engine.isRunning { try? engine.start() }
-                playerNode.play()
+
+                // Calculate a near-future host time for synchronized restart
+                var timebaseInfo = mach_timebase_info()
+                mach_timebase_info(&timebaseInfo)
+                let nanosPerHostTick = Double(timebaseInfo.numer) / Double(timebaseInfo.denom)
+
+                let hostTimeNow = mach_absolute_time()
+                let delayNanos: UInt64 = 30_000_000  // 30ms - enough for scheduling
+                let delayHostTicks = UInt64(Double(delayNanos) / nanosPerHostTick)
+                let restartHostTime = hostTimeNow + delayHostTicks
+
+                let audioRestartTime = AVAudioTime(hostTime: restartHostTime)
+                playerNode.play(at: audioRestartTime)
             }
         }
     }
@@ -430,14 +670,48 @@ class PlayerViewModel: ObservableObject {
             player.pause()
             playerNode.pause()
         } else {
+            guard let file = audioFile else {
+                // No audio, just play video
+                player.play()
+                return
+            }
+
+            // Prevent observer from interfering
+            isStartingPlayback = true
+
             if !engine.isRunning { try? engine.start() }
 
-            // Resync audio with video before playing to ensure they are aligned
-            resyncAudio(to: player.currentTime().seconds, force: true)
+            // Schedule audio at current video position
+            let currentTime = player.currentTime().seconds
+            let clampedTime = max(0, currentTime)
+            var targetSample = AVAudioFramePosition(clampedTime * audioSampleRate)
+            targetSample = max(0, min(targetSample, audioLengthSamples - 1))
 
-            player.play()
-            if !playerNode.isPlaying {
-                playerNode.play()
+            playerNode.stop()
+            let remainingSamples = AVAudioFrameCount(max(0, audioLengthSamples - targetSample))
+            if remainingSamples > 0 {
+                playerNode.scheduleSegment(file, startingFrame: targetSample, frameCount: remainingSamples, at: nil, completionHandler: nil)
+            }
+
+            // Start both at synchronized host time
+            var timebaseInfo = mach_timebase_info()
+            mach_timebase_info(&timebaseInfo)
+            let nanosPerHostTick = Double(timebaseInfo.numer) / Double(timebaseInfo.denom)
+
+            let hostTimeNow = mach_absolute_time()
+            let delayNanos: UInt64 = 30_000_000  // 30ms
+            let delayHostTicks = UInt64(Double(delayNanos) / nanosPerHostTick)
+            let startHostTime = hostTimeNow + delayHostTicks
+
+            let audioStartTime = AVAudioTime(hostTime: startHostTime)
+            playerNode.play(at: audioStartTime)
+
+            let cmHostTime = CMClockMakeHostTimeFromSystemUnits(startHostTime)
+            let cmTime = CMTime(seconds: clampedTime, preferredTimescale: 600)
+            player.setRate(1.0, time: cmTime, atHostTime: cmHostTime)
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                self?.isStartingPlayback = false
             }
         }
         // isPlaying will be updated by the observer on timeControlStatus
