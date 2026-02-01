@@ -14,6 +14,8 @@ Both pipelines start synchronized via `mach_absolute_time` host clock.
 
 ### PlayerViewModel (Singleton: `.shared`)
 
+> See [PlayerViewModel.swift](file:///Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel.swift)
+
 **Properties:**
 | Name | Type | Purpose |
 |------|------|---------|
@@ -47,15 +49,33 @@ Both pipelines start synchronized via `mach_absolute_time` host clock.
 | `playNext()` / `playPrevious()` | Queue navigation (previous restarts if >5s in) |
 | `updateShuffleState(isOn:)` | Reshuffles or reverts queue, preserves current video |
 
-### CustomVideoPlayer
+### VideoManager (Singleton: `.shared`)
 
-`UIViewControllerRepresentable` wrapping `AVPlayerViewController`:
-- `showsPlaybackControls = false` (custom UI)
-- `updatesNowPlayingInfoCenter = false` (manual control)
-- `videoGravity` configurable for aspect ratios
-- Provides native PiP support
+> See [VideoManager.swift](file:///Users/mario/Projects/iOS/Vid/Vid/Managers/VideoManager.swift)
+
+| Method | Purpose |
+|--------|---------|
+| `loadVideosFromDisk()` | Loads persisted video metadata from `videos.json` |
+| `loadVideosAsync()` | Scans Documents directory for video files, updates `videos` array |
+| `importFiles(_ urls:)` | Copies files from file picker to Documents, reloads library |
+| `saveVideosToDisk()` | Persists video metadata (watch status, counts) |
+
+After loading, prunes stale references via `PlaylistManager.pruneMissingVideoIds()` and `SettingsStore.pruneMissingLikes()`.
+
+### PlaylistManager (Singleton: `.shared`)
+
+> See [PlaylistManager.swift](file:///Users/mario/Projects/iOS/Vid/Vid/Managers/PlaylistManager.swift)
+
+| Method | Purpose |
+|--------|---------|
+| `createPlaylist(name:)` | Creates new playlist |
+| `addVideo(_:to:)` | Adds video ID to playlist |
+| `removeVideo(_:from:)` | Removes video ID from playlist |
+| `pruneMissingVideoIds(validIds:)` | Removes deleted videos from all playlists |
 
 ### SettingsStore (Singleton: `.shared`)
+
+> See [SettingsStore.swift](file:///Users/mario/Projects/iOS/Vid/Vid/Managers/SettingsStore.swift)
 
 | Property | Type | Storage |
 |----------|------|---------|
@@ -73,6 +93,39 @@ EQ changes observed via Combine and applied reactively to `eqNode`.
 
 ---
 
+## Data Models
+
+> See [Models/](file:///Users/mario/Projects/iOS/Vid/Vid/Models/)
+
+### Video
+```swift
+struct Video: Identifiable, Codable, Equatable, Hashable {
+    var id: String { url.absoluteString }  // Derived from URL
+    let name: String
+    let url: URL
+    let duration: TimeInterval
+    let dateAdded: Date
+    let fileSize: Int64
+    var isWatched: Bool
+    var watchCount: Int
+}
+```
+
+### Playlist
+```swift
+struct Playlist: Identifiable, Codable, Equatable {
+    var id: UUID
+    var name: String
+    var videoIds: [String]  // Stores Video.id references
+}
+```
+
+### SortOption
+Enum: `name`, `duration`, `recent`, `size`, `mostWatched`
+Array extension provides `filtered(by:)` and `sorted(by:ascending:)`.
+
+---
+
 ## A/V Synchronization
 
 ### Initial Sync (Host Time)
@@ -80,9 +133,13 @@ EQ changes observed via Combine and applied reactively to `eqNode`.
 1. Schedule audio segment at target sample
 2. Seek video to position
 3. Calculate future host time (now + 50ms)
-4. playerNode.play(at: AVAudioTime(hostTime:))
-5. player.setRate(1.0, time:, atHostTime: CMClockMakeHostTimeFromSystemUnits())
+4. Start VIDEO first: player.setRate(1.0, time:, atHostTime:)
+5. Start AUDIO 40ms later: playerNode.play(at: AVAudioTime(hostTime: + 40ms))
 ```
+
+**Audio Delay Compensation** (`audioDelayCompensationNanos = 40ms`):
+Video decode (hardware-accelerated) starts faster than audio engine output.
+Audio is intentionally delayed by 40ms to maintain lip-sync.
 
 ### Drift Correction
 - **Threshold**: 25ms (`syncThresholdSeconds`)
@@ -99,20 +156,41 @@ EQ changes observed via Combine and applied reactively to `eqNode`.
 
 ---
 
-## Seek Handling
+## MainTabView & App Lifecycle
 
-**User-Initiated (`seek(to:)`)**:
-1. Set `isSeeking = true`
-2. Capture `wasPlaying` state
-3. Frame-accurate video seek (`toleranceBefore: .zero, toleranceAfter: .zero`)
-4. `rescheduleAudioOnly(to:)` - stops node, schedules segment, doesn't play
-5. Restore play state if was playing
-6. Delay clear `isSeeking` by 200ms (protects against late timeJumped notifications)
+> See [MainTabView.swift](file:///Users/mario/Projects/iOS/Vid/Vid/Views/Navigation/MainTabView.swift)
 
-**System-Initiated (PiP, Control Center)**:
-- Detected via `timeJumpedNotification`
-- Guarded by `!isSeeking && !isStartingPlayback`
-- Calls `prerollAndStartSynchronized(from:)` for full resync
+Root view that hosts all navigation and the player full-screen cover.
+
+**Key Methods:**
+| Method | Purpose |
+|--------|---------|
+| `autoPlayLastContext()` | On app launch, plays random video from last context (all/playlist/liked) if `autoplayOnAppOpen` enabled |
+| `navigateToContextAfterPlayerClose()` | Returns to source tab/playlist after player closes |
+| `handlePlayPlaylistActivity(_:)` | Handles Siri/Shortcuts user activity |
+| `donateGenericActivities()` | Registers NSUserActivity for Siri indexing |
+
+**Playback Context Flow:**
+1. User plays from Library/Playlist/Liked → context saved to `SettingsStore`
+2. Player closed → `navigateToContextAfterPlayerClose()` returns to source
+3. App reopened → `autoPlayLastContext()` plays random video from saved context
+
+---
+
+## Siri & App Intents
+
+> See [VidIntents.swift](file:///Users/mario/Projects/iOS/Vid/Vid/VidIntents.swift)
+
+Requires iOS 16+. Provides voice control via Shortcuts app.
+
+**Intents:**
+| Intent | Trigger Phrase |
+|--------|----------------|
+| `PlayPlaylistIntent` | "Play a playlist on Vid" |
+| `SearchAndPlayVideoIntent` | "Search a video on Vid" |
+
+**Entities:**
+- `PlaylistEntity`: Exposes playlists to Siri parameter picker
 
 ---
 
@@ -141,6 +219,8 @@ Audio engine reconnects per-file via `reconnectAudioNodes(with:)` to match sourc
 ---
 
 ## Player UI Architecture
+
+> See [Views/Player/](file:///Users/mario/Projects/iOS/Vid/Vid/Views/Player/)
 
 ### View Hierarchy
 ```
@@ -207,16 +287,6 @@ Updated on play, pause, seek, track change. Includes thumbnail from `ThumbnailCa
 
 ---
 
-## Interruption Handling
-
-| Event | Action |
-|-------|--------|
-| `.began` | `playerNode.pause()` |
-| `.ended` + `.shouldResume` | Restart engine, `resyncAudio(force: true)`, resume both |
-| Route change (headphone unplug) | Pause playback |
-
----
-
 ## Queue Management
 
 - `originalQueue`: unmodified video list
@@ -233,16 +303,15 @@ Updated on play, pause, seek, track change. Includes thumbnail from `ThumbnailCa
 
 ---
 
-## Playback Context Persistence
+## Data Persistence
 
-Stored in `SettingsStore`:
-- `lastContextType`: "all" / "playlist" / "liked"
-- `lastPlaylistId`: UUID string (if playlist)
-- `lastVideoId`: video ID
-
-Used by:
-- `autoPlayLastContext()`: restores on app launch if `autoplayOnAppOpen`
-- `navigateToContextAfterPlayerClose()`: returns to source view
+| Data | Location |
+|------|----------|
+| Video metadata | `Application Support/videos.json` |
+| Video files | Documents directory (user-visible) |
+| Playlists | UserDefaults `"saved_playlists"` |
+| Settings/EQ | UserDefaults / @AppStorage |
+| Liked videos | UserDefaults `"likedVideoIds"` |
 
 ---
 
@@ -250,23 +319,26 @@ Used by:
 
 ```
 Vid/
+├── VidApp.swift                      # App entry point
+├── VidIntents.swift                  # Siri/Shortcuts (iOS 16+)
 ├── ViewModels/
 │   └── PlayerViewModel.swift         # Core playback logic
 ├── Views/
 │   ├── Navigation/
-│   │   └── MainTabView.swift         # Root view, player overlay host
+│   │   └── MainTabView.swift         # Root view, player overlay, autoplay
 │   ├── Player/
 │   │   ├── PlayerView.swift          # Full-screen player UI
 │   │   ├── CustomVideoPlayer.swift   # AVPlayerViewController wrapper
 │   │   ├── PlayerControlsOverlay.swift
-│   │   ├── EqualizerView.swift
-│   │   └── VolumeOverlay.swift       # VerticalProgressBar, VolumeController
+│   │   └── EqualizerView.swift
 │   ├── Library/
-│   │   └── AllVideosView.swift
+│   │   └── AllVideosView.swift       # Video list with sort/filter
 │   ├── Playlists/
-│   │   └── PlaylistsView.swift
+│   │   └── PlaylistsView.swift       # Playlist management
+│   ├── Components/                   # Reusable UI components
 │   └── Shared/
-│       └── AspectRatioMode.swift
+│       ├── AspectRatioMode.swift
+│       └── SortOption.swift
 ├── Managers/
 │   ├── SettingsStore.swift           # EQ/settings persistence
 │   ├── VideoManager.swift            # Video library
@@ -274,5 +346,6 @@ Vid/
 │   └── ThumbnailCache.swift
 └── Models/
     ├── Video.swift
-    └── Playlist.swift
+    ├── Playlist.swift
+    └── SortOption.swift              # Sort enum + Array extensions
 ```

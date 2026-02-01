@@ -194,25 +194,17 @@ struct MainTabView: View {
 
         // Use a small delay to ensure VideoManager and PlaylistManager have finished their initial local disk load
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            // Find the last played video
-            let lastVideo = videoManager.videos.first(where: { $0.id == settingsStore.lastVideoId })
-
             if settingsStore.lastContextType == "all" {
                 selectedTab = .library
-                // Try to play the last video, fallback to first video if not found
-                let videoToPlay = lastVideo ?? videoManager.videos.first
-                if let video = videoToPlay {
+                // Play a random video from the library
+                if let video = videoManager.videos.randomElement() {
                     playerVM.play(video: video, from: videoManager.videos, settings: settingsStore)
                 }
             } else if settingsStore.lastContextType == "liked" {
                 selectedTab = .playlists
-                // Get liked videos
+                // Get liked videos and play a random one
                 let likedVideos = videoManager.videos.filter { settingsStore.likedVideoIds.contains($0.id) }
-                // Try to play the last video if it's liked, otherwise play first liked video
-                let videoToPlay = (lastVideo != nil && likedVideos.contains(where: { $0.id == lastVideo?.id }))
-                    ? lastVideo
-                    : likedVideos.first
-                if let video = videoToPlay {
+                if let video = likedVideos.randomElement() {
                     playerVM.play(video: video, from: likedVideos, settings: settingsStore)
                 }
             } else if settingsStore.lastContextType == "playlist",
@@ -222,11 +214,8 @@ struct MainTabView: View {
                     let resolvedVideos = playlist.videoIds.compactMap { id in
                         videoManager.videos.first(where: { $0.id == id })
                     }
-                    // Try to play the last video if it's in this playlist, otherwise play first video
-                    let videoToPlay = (lastVideo != nil && resolvedVideos.contains(where: { $0.id == lastVideo?.id }))
-                        ? lastVideo
-                        : resolvedVideos.first
-                    if let video = videoToPlay {
+                    // Play a random video from the playlist
+                    if let video = resolvedVideos.randomElement() {
                         playerVM.play(video: video, from: resolvedVideos, settings: settingsStore)
                     }
                 }

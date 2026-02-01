@@ -20,6 +20,8 @@ Video and audio are separate pipelines for real-time EQ:
 
 **When modifying playback**: Always control both `player` and `playerNode` together. See `togglePlayPause()`, `seek(to:)` for sync patterns.
 
+**A/V Sync**: Audio starts 40ms after video (`audioDelayCompensationNanos`) to compensate for faster video decode.
+
 ### Video URLs Are Volatile
 iOS sandbox changes container paths on each launch. Never persist full URL paths.
 - Store/compare by `video.url.lastPathComponent` (filename)

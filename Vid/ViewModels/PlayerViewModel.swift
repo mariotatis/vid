@@ -36,6 +36,10 @@ class PlayerViewModel: ObservableObject {
 
     // A/V Sync Constants
     private let syncThresholdSeconds: Double = 0.025  // 25ms - tighter threshold, below human perception (~45ms)
+    
+    // Audio delay compensation: Video decode is faster than audio engine startup.
+    // Delay audio start by this amount to keep them in sync.
+    private let audioDelayCompensationNanos: UInt64 = 40_000_000  // 40ms - tunable
 
     // Flag to prevent observer from resyncing during initial playback start
     private var isStartingPlayback = false
@@ -431,13 +435,15 @@ class PlayerViewModel: ObservableObject {
             let delayHostTicks = UInt64(Double(delayNanos) / nanosPerHostTick)
             let startHostTime = hostTimeNow + delayHostTicks
 
-            // Start audio at host time
-            let audioStartTime = AVAudioTime(hostTime: startHostTime)
-            self.playerNode.play(at: audioStartTime)
-
-            // Start video at same host time
+            // Start VIDEO at base host time (video decode is faster)
             let cmHostTime = CMClockMakeHostTimeFromSystemUnits(startHostTime)
             self.player.setRate(1.0, time: time, atHostTime: cmHostTime)
+
+            // Start AUDIO slightly later to compensate for pipeline latency
+            let audioDelayTicks = UInt64(Double(self.audioDelayCompensationNanos) / nanosPerHostTick)
+            let audioStartHostTime = startHostTime + audioDelayTicks
+            let audioStartTime = AVAudioTime(hostTime: audioStartHostTime)
+            self.playerNode.play(at: audioStartTime)
 
             self.isPlaying = true
             self.updateNowPlayingInfo()
@@ -659,7 +665,10 @@ class PlayerViewModel: ObservableObject {
                 let delayHostTicks = UInt64(Double(delayNanos) / nanosPerHostTick)
                 let restartHostTime = hostTimeNow + delayHostTicks
 
-                let audioRestartTime = AVAudioTime(hostTime: restartHostTime)
+                // Delay audio start to compensate for video decode being faster
+                let audioDelayTicks = UInt64(Double(audioDelayCompensationNanos) / nanosPerHostTick)
+                let audioRestartHostTime = restartHostTime + audioDelayTicks
+                let audioRestartTime = AVAudioTime(hostTime: audioRestartHostTime)
                 playerNode.play(at: audioRestartTime)
             }
         }
@@ -703,12 +712,16 @@ class PlayerViewModel: ObservableObject {
             let delayHostTicks = UInt64(Double(delayNanos) / nanosPerHostTick)
             let startHostTime = hostTimeNow + delayHostTicks
 
-            let audioStartTime = AVAudioTime(hostTime: startHostTime)
-            playerNode.play(at: audioStartTime)
-
+            // Start VIDEO at base host time (video decode is faster)
             let cmHostTime = CMClockMakeHostTimeFromSystemUnits(startHostTime)
             let cmTime = CMTime(seconds: clampedTime, preferredTimescale: 600)
             player.setRate(1.0, time: cmTime, atHostTime: cmHostTime)
+
+            // Start AUDIO slightly later to compensate for pipeline latency
+            let audioDelayTicks = UInt64(Double(audioDelayCompensationNanos) / nanosPerHostTick)
+            let audioStartHostTime = startHostTime + audioDelayTicks
+            let audioStartTime = AVAudioTime(hostTime: audioStartHostTime)
+            playerNode.play(at: audioStartTime)
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
                 self?.isStartingPlayback = false
