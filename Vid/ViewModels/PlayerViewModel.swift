@@ -230,6 +230,26 @@ class PlayerViewModel: ObservableObject {
         }
     }
 
+    /// Toggles between EQ audio (AVAudioEngine) and native video audio (AVPlayer unmuted)
+    /// When EQ is enabled: playerNode plays audio with EQ, video is muted
+    /// When EQ is disabled: playerNode is silent, video plays its native audio
+    func setEQEnabled(_ enabled: Bool) {
+        if enabled {
+            // Use EQ audio: mute video, ensure audio engine is playing
+            player.isMuted = true
+            engine.mainMixerNode.outputVolume = 1.0
+            if player.timeControlStatus == .playing && !playerNode.isPlaying {
+                if !engine.isRunning { try? engine.start() }
+                // Resync audio to current video position
+                resyncAudio(to: player.currentTime().seconds, force: true)
+            }
+        } else {
+            // Use native video audio: unmute video, silence audio engine
+            player.isMuted = false
+            engine.mainMixerNode.outputVolume = 0.0
+        }
+    }
+
     // MARK: - Audio Sync Helpers
 
     #if DEBUG
@@ -335,10 +355,16 @@ class PlayerViewModel: ObservableObject {
 
     /// Continues playback setup after audio file is prepared (or retry completed)
     private func continuePlaybackSetup(for video: Video, playbackId: UInt64) {
-        // 2. Prepare AVPlayer (Video Only - Muted)
+        // 2. Prepare AVPlayer (Video Only - Muted when EQ is enabled)
         let playerItem = AVPlayerItem(url: video.url)
         player.replaceCurrentItem(with: playerItem)
-        player.isMuted = true
+        
+        // Apply EQ enabled state: when EQ on, video muted + audio engine at full volume
+        // When EQ off, video unmuted + audio engine silenced
+        let eqEnabled = SettingsStore.shared.isEQEnabled
+        player.isMuted = eqEnabled
+        engine.mainMixerNode.outputVolume = eqEnabled ? 1.0 : 0.0
+        
         player.allowsExternalPlayback = true
         // Disable automatic stalling for precise timing control
         player.automaticallyWaitsToMinimizeStalling = false

@@ -25,7 +25,7 @@ enum AppFocus: Hashable {
     // EQ Overlay
     case eqPreamp
     case eqBand(Int)
-    case eqReset
+    case eqToggle
 }
 
 /// A button style that provides high-contrast visual feedback for focus states,

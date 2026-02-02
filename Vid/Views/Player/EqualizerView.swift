@@ -2,6 +2,7 @@ import SwiftUI
 
 struct EqualizerView: View {
     @EnvironmentObject var settings: SettingsStore
+    @EnvironmentObject var playerVM: PlayerViewModel
     @Binding var isDraggingSlider: Bool
     var onEditingChanged: (Bool) -> Void
     @FocusState.Binding var focusedElement: AppFocus?
@@ -11,10 +12,10 @@ struct EqualizerView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            // Reset button on top, aligned right
-            HStack {
+            // Button row: Turn Off/On
+            HStack(spacing: 12) {
                 Spacer()
-                resetEQButton
+                eqToggleButton
             }
             .padding(.horizontal)
 
@@ -97,26 +98,28 @@ struct EqualizerView: View {
     }
 
     @ViewBuilder
-    private var resetEQButton: some View {
+    private var eqToggleButton: some View {
         Button(action: {
-            settings.eqValues = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
-            settings.preampValue = 0.5
+            settings.isEQEnabled.toggle()
+            playerVM.setEQEnabled(settings.isEQEnabled)
         }) {
             HStack(spacing: 8) {
-                Image(systemName: "arrow.counterclockwise")
+                Image(systemName: settings.isEQEnabled ? "speaker.wave.3.fill" : "speaker.slash.fill")
                     .font(.system(size: 16, weight: .semibold))
-                Text("Reset EQ")
+                Text(settings.isEQEnabled ? "EQ On" : "EQ Off")
                     .font(.headline)
             }
-            .foregroundColor(.white)
+            .foregroundColor(settings.isEQEnabled ? .white : .gray)
             .padding(.horizontal, 20)
             .padding(.vertical, 10)
             .modifier(ResetButtonStyle())
         }
         .buttonStyle(.plain)
         .vidFocusHighlight()
-        .focused($focusedElement, equals: .eqReset)
+        .focused($focusedElement, equals: .eqToggle)
     }
+
+
 
     private func binding(for index: Int) -> Binding<Double> {
         return Binding(
