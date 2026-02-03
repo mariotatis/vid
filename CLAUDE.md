@@ -1,38 +1,19 @@
-# CLAUDE.md
+# Vid
 
-Vid is an iOS video player app with SwiftUI, featuring playlists, 6-band EQ, shuffle, background audio, and Siri integration.
+iOS video player with SwiftUI: playlists, 6-band EQ, shuffle, background audio, Siri.
 
 ## Critical Rules
 
-### Singletons Only
-All managers are singletons via `.shared`. Never create new instances:
-- `VideoManager.shared` - video library
-- `PlaylistManager.shared` - playlists
-- `PlayerViewModel.shared` - playback control
-- `SettingsStore.shared` - settings/EQ
+**Singletons only** - All managers use `.shared`. Never instantiate:
+- `VideoManager.shared`, `PlaylistManager.shared`, `PlayerViewModel.shared`, `SettingsStore.shared`
 
-Views receive these as `@StateObject` in MainTabView and pass via `@EnvironmentObject`.
+**Dual-pipeline sync** - Video (AVPlayer, muted) and audio (AVAudioEngine) are separate for real-time EQ. Always control both `player` and `playerNode` together. See `togglePlayPause()`, `seek(to:)`.
 
-### Dual-Pipeline Playback
-Video and audio are separate pipelines for real-time EQ:
-- **AVPlayer**: video only (muted)
-- **AVAudioEngine**: audio with EQ chain
+**URLs are volatile** - iOS sandbox changes paths on launch. Store/compare by `video.url.lastPathComponent` only.
 
-**When modifying playback**: Always control both `player` and `playerNode` together. See `togglePlayPause()`, `seek(to:)` for sync patterns.
-
-**A/V Sync**: Audio starts 40ms after video (`audioDelayCompensationNanos`) to compensate for faster video decode.
-
-### Video URLs Are Volatile
-iOS sandbox changes container paths on each launch. Never persist full URL paths.
-- Store/compare by `video.url.lastPathComponent` (filename)
-- `VideoManager.loadVideosFromDisk()` rebuilds URLs on load
-
-### Playlist Video Resolution
-Playlists store `videoIds: [String]`. Resolve to Video objects:
+**Playlist resolution** - Playlists store `videoIds: [String]`. Resolve via:
 ```swift
-playlist.videoIds.compactMap { id in
-    videoManager.videos.first { $0.id == id }
-}
+playlist.videoIds.compactMap { id in videoManager.videos.first { $0.id == id } }
 ```
 
 ## Common Tasks
@@ -42,20 +23,22 @@ playlist.videoIds.compactMap { id in
 | Play video | `PlayerViewModel.play(video:from:settings:)` |
 | Seek | `PlayerViewModel.seek(to:)` |
 | Toggle shuffle | `PlayerViewModel.updateShuffleState(isOn:)` |
-| Update EQ | Modify `SettingsStore.eqValues` / `preampValue` (reactive) |
+| Update EQ | Modify `SettingsStore.eqValues` / `preampValue` |
 
 ## Data Persistence
 
 | Data | Location |
 |------|----------|
 | Video metadata | `Application Support/videos.json` |
-| Video files | Documents directory (user-visible) |
+| Video files | Documents directory |
 | Playlists | UserDefaults `"saved_playlists"` |
 | Settings/EQ | UserDefaults / @AppStorage |
 | Liked videos | UserDefaults `"likedVideoIds"` |
 
 ## Testing
 
-Place `.mp4`, `.mov`, `.m4v` files in iOS Simulator's Documents directory.
+Place `.mp4`, `.mov`, `.m4v` in iOS Simulator Documents directory.
 
-For detailed technical architecture, see @architecture-map.md
+## Architecture
+
+See @architecture-map.md for detailed component docs, A/V sync implementation, and file structure.
