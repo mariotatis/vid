@@ -1,0 +1,241 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project Vid.xcodeproj -scheme Vid -destination "generic/platform=iOS Simulator" build
+
+2026-02-02 11:20:37.139 xcodebuild[45620:10250183] [MT] IDERunDestination: Supported platforms for the buildables in the current scheme is empty.
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (1 target)
+    Target 'Vid' in project 'Vid' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/mario/Projects/iOS/Vid/Vid/Assets.xcassets
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+Build description signature: 92c580ba538c7625179ed646e0ea599f
+Build description path: /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/XCBuildData/92c580ba538c7625179ed646e0ea599f.xcbuilddata
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk /Users/mario/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.2-23C53-7d00a8b37fbd7999ea79df8ebc024bf0.sdkstatcache
+    cd /Users/mario/Projects/iOS/Vid/Vid.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -o /Users/mario/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.2-23C53-7d00a8b37fbd7999ea79df8ebc024bf0.sdkstatcache
+
+ProcessProductPackaging /Users/mario/Projects/iOS/Vid/Vid/Vid.entitlements /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid.app.xcent (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    
+    Entitlements:
+    
+    {
+}
+    
+    builtin-productPackagingUtility /Users/mario/Projects/iOS/Vid/Vid/Vid.entitlements -entitlements -format xml -o /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid.app.xcent
+
+ProcessProductPackaging /Users/mario/Projects/iOS/Vid/Vid/Vid.entitlements /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid.app-Simulated.xcent (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    
+    Entitlements:
+    
+    {
+    "application-identifier" = "SHCLPJTU4V.com.koombea.Vid";
+    "com.apple.developer.siri" = 1;
+}
+    
+    builtin-productPackagingUtility /Users/mario/Projects/iOS/Vid/Vid/Vid.entitlements -entitlements -format xml -o /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid.app-Simulated.xcent
+
+ProcessProductPackagingDER /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid.app-Simulated.xcent /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid.app-Simulated.xcent.der (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    /usr/bin/derq query -f xml -i /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid.app-Simulated.xcent -o /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid.app-Simulated.xcent.der --raw
+
+ProcessProductPackagingDER /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid.app.xcent /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid.app.xcent.der (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    /usr/bin/derq query -f xml -i /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid.app.xcent -o /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid.app.xcent.der --raw
+
+CompileAssetCatalogVariant thinned /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Products/Debug-iphonesimulator/Vid.app /Users/mario/Projects/iOS/Vid/Vid/Assets.xcassets (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Users/mario/Projects/iOS/Vid/Vid/Assets.xcassets --compile /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/assetcatalog_output/thinned --output-format human-readable-text --notices --warnings --export-dependency-info /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/assetcatalog_dependencies_thinned --output-partial-info-plist /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/assetcatalog_generated_info.plist_thinned --app-icon AppIcon --accent-color AccentColor --compress-pngs --enable-on-demand-resources YES --development-region en --target-device iphone --target-device ipad --minimum-deployment-target 15.6 --platform iphonesimulator
+/* com.apple.actool.compilation-results */
+/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/assetcatalog_generated_info.plist_thinned
+/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/assetcatalog_output/thinned/AppIcon60x60@2x.png
+/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/assetcatalog_output/thinned/AppIcon76x76@2x~ipad.png
+/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/assetcatalog_output/thinned/Assets.car
+
+
+SwiftDriver Vid normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name Vid -Onone -enforce-exclusivity\=checked @/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/x86_64/Vid.SwiftFileList -DDEBUG -default-isolation\=MainActor -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -target x86_64-apple-ios15.6-simulator -g -module-cache-path /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Products/Debug-iphonesimulator -F /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/x86_64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/mario/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.2-23C53-7d00a8b37fbd7999ea79df8ebc024bf0.sdkstatcache -output-file-map /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/x86_64/Vid-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/x86_64/Vid.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/x86_64/Vid_const_extract_protocols.json -Xcc -iquote -Xcc /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid-generated-files.hmap -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid-own-target-headers.hmap -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid-all-target-headers.hmap -Xcc -iquote -Xcc /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid-project-headers.hmap -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/DerivedSources-normal/x86_64 -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/DerivedSources/x86_64 -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/x86_64/Vid-Swift.h -working-directory /Users/mario/Projects/iOS/Vid -experimental-emit-module-separately -disable-cmo
+
+SwiftDriver Vid normal arm64 com.apple.xcode.tools.swift.compiler (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name Vid -Onone -enforce-exclusivity\=checked @/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/arm64/Vid.SwiftFileList -DDEBUG -default-isolation\=MainActor -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -target arm64-apple-ios15.6-simulator -g -module-cache-path /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Products/Debug-iphonesimulator -F /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/mario/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.2-23C53-7d00a8b37fbd7999ea79df8ebc024bf0.sdkstatcache -output-file-map /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/arm64/Vid-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/arm64/Vid.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/arm64/Vid_const_extract_protocols.json -Xcc -iquote -Xcc /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid-generated-files.hmap -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid-own-target-headers.hmap -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid-all-target-headers.hmap -Xcc -iquote -Xcc /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid-project-headers.hmap -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/DerivedSources-normal/arm64 -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/DerivedSources/arm64 -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/arm64/Vid-Swift.h -working-directory /Users/mario/Projects/iOS/Vid -experimental-emit-module-separately -disable-cmo
+
+SwiftExplicitDependencyGeneratePcm x86_64 /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_Builtin_stdarg-8FMEZ1C1Q4O72ECK2JGRKHTR1.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/ptrauth-2P5YG3ZCIC3FOW10CSYGAT9B6.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_AvailabilityInternal-CVIGKCR3DWT72O2H7VS1F0REN.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_Builtin_stdbool-DTWRHGIXYQMBBORVH3TR9LP6I.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/SwiftShims-BAL2KYBQ79CHS9LNO27K8U06Q.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_Builtin_stddef-EN9D64F10L97OMVZ3ATIS25LB.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/ptrcheck-73CMXJ274DS7TFMSVCYLR0DMK.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_Builtin_float-1591C1G1KQ8WXLI9A0BFSQSOX.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_SwiftConcurrencyShims-PO0PJK76JSU4DH4EKDJSPPVA.pcm
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ Vid (in target 'Vid' from project 'Vid')
+EmitSwiftModule normal arm64 (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    
+
+SwiftExplicitDependencyGeneratePcm x86_64 /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/DeveloperToolsSupport-C52QLBU9LNCWAP3EFBL2CHT4Y.pcm
+
+SwiftCompile normal arm64 Compiling\ GeneratedAssetSymbols.swift /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'Vid' from project 'Vid')
+
+SwiftCompile normal arm64 /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    
+
+SwiftCompile normal arm64 Compiling\ PlayerViewModel+AudioEngine.swift,\ PlayerViewModel+AudioSync.swift /Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+AudioEngine.swift /Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+AudioSync.swift (in target 'Vid' from project 'Vid')
+SwiftCompile normal arm64 /Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+AudioEngine.swift (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    
+
+SwiftCompile normal arm64 /Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+AudioSync.swift (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    
+
+SwiftCompile normal arm64 Compiling\ EqualizerView.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Player/EqualizerView.swift (in target 'Vid' from project 'Vid')
+SwiftCompile normal arm64 /Users/mario/Projects/iOS/Vid/Vid/Views/Player/EqualizerView.swift (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    
+
+SwiftCompile normal arm64 Compiling\ PlayerViewModel+Playback.swift /Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift (in target 'Vid' from project 'Vid')
+Failed frontend command:
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c /Users/mario/Projects/iOS/Vid/Vid/Managers/PlaylistManager.swift /Users/mario/Projects/iOS/Vid/Vid/Managers/SettingsStore.swift /Users/mario/Projects/iOS/Vid/Vid/Managers/ThumbnailCache.swift /Users/mario/Projects/iOS/Vid/Vid/Managers/VideoManager.swift /Users/mario/Projects/iOS/Vid/Vid/Models/Playlist.swift /Users/mario/Projects/iOS/Vid/Vid/Models/SortOption.swift /Users/mario/Projects/iOS/Vid/Vid/Models/Video.swift /Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel.swift /Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+AudioEngine.swift /Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+AudioSync.swift /Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+EQ.swift -primary-file /Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift /Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Remote.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Components/EmptyStateView.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Components/SearchBarView.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Library/AllVideosView.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Library/VideoListView.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Library/VideoThumbnailView.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Navigation/MainTabView.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Navigation/NavigationBars.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Player/CustomVideoPlayer.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Player/EqualizerView.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Player/PlayerControlsOverlay.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Player/PlayerView.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Player/VolumeOverlay.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Playlists/AddVideosToPlaylistView.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Playlists/LikedVideosView.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Playlists/PlaylistCells.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Playlists/PlaylistDetailView.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Playlists/PlaylistsView.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Shared/AspectRatioMode.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Shared/FocusStyles.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Shared/ViewModifiers.swift /Users/mario/Projects/iOS/Vid/Vid/Views/LaunchScreenView.swift /Users/mario/Projects/iOS/Vid/Vid/ContentView.swift /Users/mario/Projects/iOS/Vid/Vid/VidApp.swift /Users/mario/Projects/iOS/Vid/Vid/VidIntents.swift /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/DerivedSources/GeneratedAssetSymbols.swift -emit-dependencies-path /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/arm64/PlayerViewModel+Playback.d -emit-const-values-path /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/arm64/PlayerViewModel+Playback.swiftconstvalues -emit-reference-dependencies-path /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/arm64/PlayerViewModel+Playback.swiftdeps -serialize-diagnostics-path /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/arm64/PlayerViewModel+Playback.dia -emit-localized-strings -emit-localized-strings-path /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/arm64 -target arm64-apple-ios15.6-simulator -module-can-import-version AppIntents 300.2.3.1 300.2.3 -module-can-import-version DeveloperToolsSupport 23.0.4 23.0.4 -module-can-import-version SwiftUI 7.2.5.1 7.2.5 -module-can-import-version UIKit 9126.2.4.1 9126.2.4 -disable-cross-import-overlay-search -swift-module-cross-import AVKit /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/Frameworks/AVKit.framework/Modules/AVKit.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import AVKit /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/AVKit.framework/Modules/AVKit.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import AppIntents /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/Frameworks/AppIntents.framework/Modules/AppIntents.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import AppIntents /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/Frameworks/AppIntents.framework/Modules/AppIntents.swiftcrossimport/UIKit.swiftoverlay -swift-module-cross-import AppIntents /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/AppIntents.framework/Modules/AppIntents.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import AppIntents /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/AppIntents.framework/Modules/AppIntents.swiftcrossimport/UIKit.swiftoverlay -swift-module-cross-import RelevanceKit /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/Frameworks/RelevanceKit.framework/Modules/RelevanceKit.swiftcrossimport/MapKit.swiftoverlay -swift-module-cross-import RelevanceKit /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk/System/Library/Frameworks/RelevanceKit.framework/Modules/RelevanceKit.swiftcrossimport/MapKit.swiftoverlay -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libAppIntentsMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#AppIntentsMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libFoundationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#FoundationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libObservationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#ObservationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libPreviewsMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#PreviewsMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#SwiftMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libSwiftUIMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#SwiftUIMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libTipKitMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#TipKitMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/arm64/Vid-dependencies-2.json -Xllvm -aarch64-use-tbi -enable-objc-interop -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -I /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Products/Debug-iphonesimulator -F /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Products/Debug-iphonesimulator -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=4 -module-cache-path /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -swift-version 5 -enforce-exclusivity\=checked -Onone -D DEBUG -serialize-debugging-options -const-gather-protocols-file /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/arm64/Vid_const_extract_protocols.json -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -default-isolation\=MainActor -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/mario/Projects/iOS/Vid -enable-anonymous-context-mangled-names -file-compilation-dir /Users/mario/Projects/iOS/Vid -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/mario/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.2-23C53-7d00a8b37fbd7999ea79df8ebc024bf0.sdkstatcache -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/swift-overrides.hmap -Xcc -iquote -Xcc /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid-generated-files.hmap -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid-own-target-headers.hmap -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid-all-target-headers.hmap -Xcc -iquote -Xcc /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Vid-project-headers.hmap -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/DerivedSources-normal/arm64 -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/DerivedSources/arm64 -Xcc -I/Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/DerivedSources -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name Vid -frontend-parseable-output -disable-clang-spi -target-sdk-version 26.2 -target-sdk-name iphonesimulator26.2 -clang-target arm64-apple-ios26.2-simulator -in-process-plugin-server-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -o /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/arm64/PlayerViewModel+Playback.o -index-unit-output-path /Vid.build/Debug-iphonesimulator/Vid.build/Objects-normal/arm64/PlayerViewModel+Playback.o -index-store-path /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Index.noindex/DataStore -index-system-modules
+
+SwiftCompile normal arm64 /Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    
+/Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift:119:14: error: instance method 'receive(on:options:)' is not available due to missing import of defining module 'Combine'
+            .receive(on: DispatchQueue.main)
+             ^
+/Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift:4:1: note: add import of module 'Combine'
+
+^
+/Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift:118:14: error: instance method 'first()' is not available due to missing import of defining module 'Combine'
+            .first()
+             ^
+/Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift:4:1: note: add import of module 'Combine'
+
+^
+/Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift:117:14: error: instance method 'filter' is not available due to missing import of defining module 'Combine'
+            .filter { $0 == .readyToPlay }
+             ^
+/Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift:4:1: note: add import of module 'Combine'
+
+^
+/Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift:13:14: error: instance method 'sink(receiveValue:)' is not available due to missing import of defining module 'Combine'
+            .sink { [weak self] (eqValues, preampValue) in
+             ^
+/Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift:4:1: note: add import of module 'Combine'
+
+^
+/Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift:120:14: error: instance method 'sink(receiveValue:)' is not available due to missing import of defining module 'Combine'
+            .sink { [weak self] _ in
+             ^
+/Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift:4:1: note: add import of module 'Combine'
+
+^
+/Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift:49:29: error: instance method 'cancel()' is not available due to missing import of defining module 'Combine'
+        preloadCancellable?.cancel()
+                            ^
+/Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift:4:1: note: add import of module 'Combine'
+
+^
+/Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift:12:50: error: instance method 'combineLatest' is not available due to missing import of defining module 'Combine'
+        settingsCancellable = settings.$eqValues.combineLatest(settings.$preampValue)
+                                                 ^
+/Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift:4:1: note: add import of module 'Combine'
+
+^
+
+SwiftCompile normal arm64 Compiling\ FocusStyles.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Shared/FocusStyles.swift (in target 'Vid' from project 'Vid')
+
+SwiftCompile normal arm64 /Users/mario/Projects/iOS/Vid/Vid/Views/Shared/FocusStyles.swift (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    
+
+SwiftCompile normal arm64 Compiling\ PlayerControlsOverlay.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Player/PlayerControlsOverlay.swift (in target 'Vid' from project 'Vid')
+
+SwiftCompile normal arm64 /Users/mario/Projects/iOS/Vid/Vid/Views/Player/PlayerControlsOverlay.swift (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    
+
+SwiftExplicitDependencyGeneratePcm x86_64 /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_DarwinFoundation1-7PX9JJSHN0148ACD1B8NINDIN.pcm
+
+SwiftCompile normal arm64 Compiling\ SettingsStore.swift,\ PlayerViewModel.swift /Users/mario/Projects/iOS/Vid/Vid/Managers/SettingsStore.swift /Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel.swift (in target 'Vid' from project 'Vid')
+
+SwiftCompile normal arm64 /Users/mario/Projects/iOS/Vid/Vid/Managers/SettingsStore.swift (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    
+
+SwiftCompile normal arm64 /Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel.swift (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    
+
+SwiftCompile normal arm64 Compiling\ MainTabView.swift /Users/mario/Projects/iOS/Vid/Vid/Views/Navigation/MainTabView.swift (in target 'Vid' from project 'Vid')
+
+SwiftCompile normal arm64 /Users/mario/Projects/iOS/Vid/Vid/Views/Navigation/MainTabView.swift (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    
+
+SwiftExplicitDependencyGeneratePcm x86_64 /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_DarwinFoundation2-EU8QWA28ID6VSQJ67EK7R9GMZ.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/ExtensionFoundation-7OX1GENUAZXD69ZYJ6J77J5OR.pcm
+
+SwiftDriverJobDiscovery normal arm64 Compiling GeneratedAssetSymbols.swift (in target 'Vid' from project 'Vid')
+
+SwiftExplicitDependencyGeneratePcm x86_64 /Users/mario/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/_Builtin_limits-BBI0LP1PYGSSL5BZPY5W0UPND.pcm
+
+LinkAssetCatalog /Users/mario/Projects/iOS/Vid/Vid/Assets.xcassets (in target 'Vid' from project 'Vid')
+    cd /Users/mario/Projects/iOS/Vid
+    builtin-linkAssetCatalog --thinned /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/assetcatalog_output/thinned --thinned-dependencies /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/assetcatalog_dependencies_thinned --thinned-info-plist-content /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/assetcatalog_generated_info.plist_thinned --unthinned /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/assetcatalog_output/unthinned --unthinned-dependencies /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/assetcatalog_dependencies_unthinned --unthinned-info-plist-content /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/assetcatalog_generated_info.plist_unthinned --output /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Products/Debug-iphonesimulator/Vid.app --plist-output /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Intermediates.noindex/Vid.build/Debug-iphonesimulator/Vid.build/assetcatalog_generated_info.plist
+note: Emplaced /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Products/Debug-iphonesimulator/Vid.app/AppIcon76x76@2x~ipad.png (in target 'Vid' from project 'Vid')
+note: Emplaced /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Products/Debug-iphonesimulator/Vid.app/AppIcon60x60@2x.png (in target 'Vid' from project 'Vid')
+note: Emplaced /Users/mario/Library/Developer/Xcode/DerivedData/Vid-bhiujwalvpkgiuduqrducmagaekb/Build/Products/Debug-iphonesimulator/Vid.app/Assets.car (in target 'Vid' from project 'Vid')
+
+SwiftDriverJobDiscovery normal arm64 Compiling FocusStyles.swift (in target 'Vid' from project 'Vid')
+
+SwiftCompile normal arm64 Compiling\ PlayerViewModel+EQ.swift /Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+EQ.swift (in target 'Vid' from project 'Vid')
+
+SwiftCompile normal arm64 Compiling\ PlayerViewModel+Remote.swift /Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Remote.swift (in target 'Vid' from project 'Vid')
+
+** BUILD FAILED **
+
+
+The following build commands failed:
+	SwiftCompile normal arm64 Compiling\ PlayerViewModel+Playback.swift /Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift (in target 'Vid' from project 'Vid')
+	SwiftCompile normal arm64 /Users/mario/Projects/iOS/Vid/Vid/ViewModels/PlayerViewModel+Playback.swift (in target 'Vid' from project 'Vid')
+	Building project Vid with scheme Vid
+(3 failures)
