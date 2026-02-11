@@ -13,6 +13,7 @@ class SettingsStore: ObservableObject {
     @AppStorage("lastVideoId") var lastVideoId: String = ""
     @AppStorage("autoplayOnAppOpen") var autoplayOnAppOpen: Bool = false
     @AppStorage("isEQEnabled") var isEQEnabled: Bool = false  // When false, uses video's native audio
+    @AppStorage("hasCompletedOnboarding") var hasCompletedOnboarding: Bool = false
 
     @Published var preampValue: Double = 0.5 {
         didSet {

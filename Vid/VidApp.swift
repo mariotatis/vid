@@ -4,6 +4,7 @@ import SwiftUI
 struct VidApp: App {
     @State private var isLoading = true
     @State private var appDidLoad = false
+    @State private var hasCompletedOnboarding = SettingsStore.shared.hasCompletedOnboarding
 
     init() {
         // Force Documents folder creation immediately on launch
@@ -26,9 +27,13 @@ struct VidApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                MainTabView(onAppLoaded: {
-                    appDidLoad = true
-                })
+                if hasCompletedOnboarding {
+                    MainTabView(onAppLoaded: {
+                        appDidLoad = true
+                    })
+                } else {
+                    OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)
+                }
 
                 LaunchScreenView()
                     .opacity(isLoading ? 1 : 0)
@@ -39,6 +44,14 @@ struct VidApp: App {
                 if loaded {
                     // Wait 2 additional seconds after app loads
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        isLoading = false
+                    }
+                }
+            }
+            .onAppear {
+                if !hasCompletedOnboarding {
+                    // Dismiss launch screen sooner for onboarding (no need to wait for MainTabView)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                         isLoading = false
                     }
                 }
