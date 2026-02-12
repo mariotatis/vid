@@ -23,8 +23,6 @@ struct OnboardingView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                Spacer()
-
                 // Pages with parallax swipe
                 GeometryReader { geometry in
                     let width = geometry.size.width
@@ -34,7 +32,8 @@ struct OnboardingView: View {
                                 page: pages[index],
                                 parallaxOffset: parallaxOffset(for: index, pageWidth: width)
                             )
-                            .frame(width: width)
+                            .frame(width: width, height: geometry.size.height)
+                            .clipped()
                         }
                     }
                     .offset(x: -CGFloat(currentPage) * width + dragOffset)
@@ -106,7 +105,7 @@ struct OnboardingView: View {
 
     private func parallaxOffset(for index: Int, pageWidth: CGFloat) -> CGFloat {
         let pagePosition = CGFloat(index - currentPage) * pageWidth + dragOffset
-        return pagePosition * -0.3
+        return pagePosition * -0.45
     }
 
     private func completeOnboarding() {
@@ -125,8 +124,9 @@ private struct OnboardingPageView: View {
 
     var body: some View {
         VStack(spacing: 24) {
+            Spacer()
+
             onboardingImage
-                .offset(x: parallaxOffset)
 
             VStack(spacing: 10) {
                 Text(page.title)
@@ -139,6 +139,9 @@ private struct OnboardingPageView: View {
                     .multilineTextAlignment(.center)
             }
             .padding(.horizontal, 32)
+            .offset(x: parallaxOffset)
+
+            Spacer()
         }
     }
 
@@ -148,25 +151,25 @@ private struct OnboardingPageView: View {
             Image(page.imageName)
                 .resizable()
                 .scaledToFit()
-                .frame(maxHeight: 300)
-                .cornerRadius(16)
-                .padding(.horizontal, 32)
+                .frame(maxHeight: 400)
+                .cornerRadius(20)
+                .padding(.horizontal, 24)
         } else {
             // Fallback placeholder
             ZStack {
-                RoundedRectangle(cornerRadius: 24)
+                RoundedRectangle(cornerRadius: 32)
                     .fill(Color(.systemGray6))
-                    .frame(width: 200, height: 200)
+                    .frame(width: 260, height: 260)
 
                 Circle()
                     .fill(Color.red)
-                    .frame(width: 80, height: 80)
-                    .shadow(color: .red.opacity(0.3), radius: 12, x: 0, y: 6)
+                    .frame(width: 100, height: 100)
+                    .shadow(color: .red.opacity(0.3), radius: 16, x: 0, y: 8)
 
                 Image(systemName: "play.fill")
-                    .font(.system(size: 34, weight: .regular))
+                    .font(.system(size: 42, weight: .regular))
                     .foregroundColor(.white)
-                    .offset(x: 2)
+                    .offset(x: 3)
             }
         }
     }
