@@ -11,7 +11,6 @@ struct LikedVideosView: View {
     @State private var sortAscending: Bool = true
     @State private var searchText = ""
     @State private var showSearch = false
-    @State private var showThumbnails = true
 
     var likedVideos: [Video] {
         videoManager.videos.filter { settings.likedVideoIds.contains($0.id) }
@@ -68,7 +67,7 @@ struct LikedVideosView: View {
 
             VideoListView(
                 videos: sortedVideos,
-                showThumbnails: showThumbnails,
+                showThumbnails: settings.showThumbnails,
                 focusedElement: $focusedElement,
                 onDelete: { offsets in unlikeVideo(at: offsets) },
                 onPlay: { video in
@@ -135,11 +134,6 @@ struct LikedVideosView: View {
                         Label(sortAscending ? "Ascending" : "Descending", systemImage: sortAscending ? "arrow.up" : "arrow.down")
                     }
 
-                    Divider()
-
-                    Button(action: { showThumbnails.toggle() }) {
-                        Label("Show Thumbnails", systemImage: showThumbnails ? "checkmark" : "")
-                    }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .foregroundColor(.primary)

@@ -67,7 +67,10 @@ struct SettingsView: View {
             toggleRow(
                 icon: "photo",
                 title: "Show Thumbnails",
-                isOn: $settings.showThumbnails
+                isOn: Binding(
+                    get: { settings.showThumbnails },
+                    set: { settings.showThumbnails = $0 }
+                )
             )
 
             Divider()
@@ -76,7 +79,10 @@ struct SettingsView: View {
             toggleRow(
                 icon: "play.circle",
                 title: "Autoplay on App Open",
-                isOn: $settings.autoplayOnAppOpen
+                isOn: Binding(
+                    get: { settings.autoplayOnAppOpen },
+                    set: { settings.autoplayOnAppOpen = $0 }
+                )
             )
         }
         .background(Color(UIColor.secondarySystemGroupedBackground))

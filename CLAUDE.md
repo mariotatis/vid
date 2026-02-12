@@ -16,6 +16,8 @@ iOS video player with SwiftUI: playlists, 6-band EQ, shuffle, background audio, 
 playlist.videoIds.compactMap { id in videoManager.videos.first { $0.id == id } }
 ```
 
+**Read architecture-map.md first** - Before building features or refactoring, read @architecture-map.md to understand which components are involved. It documents file structure, view hierarchy, settings consumers, and navigation patterns.
+
 ## Common Tasks
 
 | Task | Method |

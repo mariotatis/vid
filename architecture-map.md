@@ -108,6 +108,19 @@ Split into extensions:
 
 EQ changes observed via Combine, applied reactively.
 
+**Settings consumers** - which views read which settings:
+
+| Setting | Consumed by |
+|---------|-------------|
+| `showThumbnails` | AllVideosView, PlaylistDetailView, LikedVideosView |
+| `autoplayOnAppOpen` | MainTabView (`autoPlayLastContext`) |
+| `eqValues` / `preampValue` | PlayerViewModel+EQ |
+| `isShuffleOn` | PlayerViewModel+Playback |
+| `aspectRatioMode` | CustomVideoPlayer |
+| `isEQEnabled` | PlayerViewModel+AudioEngine |
+| `likedVideoIds` | LikedVideosView, PlaylistsView, PlaylistCells |
+| `lastContextType` / `lastPlaylistId` | MainTabView (autoplay, navigate after close), AllVideosView, PlaylistDetailView, LikedVideosView |
+
 ---
 
 ## Data Models

@@ -13,7 +13,6 @@ struct PlaylistDetailView: View {
     @State private var sortAscending: Bool = true
     @State private var searchText = ""
     @State private var showSearch = false
-    @State private var showThumbnails = true
     @State private var showAddVideos = false
 
     var livePlaylist: Playlist {
@@ -80,7 +79,7 @@ struct PlaylistDetailView: View {
 
             VideoListView(
                 videos: sortedVideos,
-                showThumbnails: showThumbnails,
+                showThumbnails: settings.showThumbnails,
                 focusedElement: $focusedElement,
                 onDelete: { offsets in deleteVideo(at: offsets) },
                 onPlay: { video in
@@ -143,9 +142,6 @@ struct PlaylistDetailView: View {
                         Button(action: { sortAscending = false }) { Label("Descending", systemImage: !sortAscending ? "checkmark" : "") }
                     }
 
-                    Divider()
-
-                    Button(action: { showThumbnails.toggle() }) { Label("Show Thumbnails", systemImage: showThumbnails ? "checkmark" : "") }
                 } label: {
                     NavIconCircle(systemName: "ellipsis")
                 }
