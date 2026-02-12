@@ -102,6 +102,7 @@ Split into extensions:
 |----------|---------|
 | `eqValues` / `preampValue` | UserDefaults JSON |
 | `isShuffleOn` / `aspectRatioMode` | @AppStorage |
+| `showThumbnails` / `autoplayOnAppOpen` | @AppStorage |
 | `likedVideoIds` | UserDefaults JSON |
 | `lastContextType` / `lastPlaylistId` / `lastVideoId` | @AppStorage |
 
@@ -147,17 +148,36 @@ struct Playlist: Identifiable, Codable, Equatable {
 
 ---
 
+## Home Screen & Navigation
+
+> [Views/Navigation/](Vid/Views/Navigation/)
+
+- [MainTabView.swift](Vid/Views/Navigation/MainTabView.swift) - Root view, owns tab state, file importer, settings sheet, playlist creation alert. Passes callbacks down to child views.
+- [NavigationBars.swift](Vid/Views/Navigation/NavigationBars.swift) - Reusable nav bar components: `TopNavigationBar`, `DetailNavigationBar`, `TabButton`, `NavButtonStyle`, `NavIconCircle`.
+
+```
+MainTabView
+├── TopNavigationBar (tab buttons: Library | Playlists, gear icon, context actions)
+├── AllVideosView (Library tab)
+│   └── VideoListView → VideoThumbnailView
+├── PlaylistsView (Playlists tab)
+│   └── PlaylistDetailView, LikedVideosView
+├── .sheet → SettingsView
+└── .fullScreenCover → PlayerView
+```
+
+**Navigation pattern:** `MainTabView` owns state (showFileImporter, showSettings, showCreatePlaylist) and passes `onAddVideo`, `onAddPlaylist`, `onOpenSettings` callbacks through child views to `TopNavigationBar`.
+
 ## Player UI
 
 > [Views/Player/](Vid/Views/Player/)
 
 ```
-MainTabView
-└── .fullScreenCover → PlayerView
-    ├── CustomVideoPlayer (AVPlayerViewController)
-    ├── PlayerControlsOverlay
-    ├── EqualizerView
-    └── VerticalProgressBar (brightness/volume)
+PlayerView
+├── CustomVideoPlayer (AVPlayerViewController)
+├── PlayerControlsOverlay
+├── EqualizerView
+└── VolumeOverlay (brightness/volume)
 ```
 
 **Gestures (controls hidden):**
@@ -207,16 +227,51 @@ MainTabView
 
 ```
 Vid/
-├── VidApp.swift
-├── VidIntents.swift
+├── VidApp.swift                          # App entry point
+├── VidIntents.swift                      # Siri intents (iOS 16+)
+├── ContentView.swift
+├── LaunchScreenView.swift
 ├── ViewModels/
-│   ├── PlayerViewModel.swift
+│   ├── PlayerViewModel.swift             # Core player state
 │   └── PlayerViewModel+{Playback,AudioEngine,AudioSync,EQ,Remote}.swift
 ├── Views/
-│   ├── Navigation/MainTabView.swift
-│   ├── Player/{PlayerView,CustomVideoPlayer,PlayerControlsOverlay,EqualizerView}.swift
-│   ├── Library/AllVideosView.swift
-│   └── Playlists/PlaylistsView.swift
-├── Managers/{SettingsStore,VideoManager,PlaylistManager,ThumbnailCache}.swift
-└── Models/{Video,Playlist,SortOption}.swift
+│   ├── Navigation/
+│   │   ├── MainTabView.swift             # Root view, tab switching, sheet/alert owners
+│   │   └── NavigationBars.swift          # TopNavigationBar, DetailNavigationBar, NavButtonStyle
+│   ├── Player/
+│   │   ├── PlayerView.swift              # Full-screen player container
+│   │   ├── CustomVideoPlayer.swift       # AVPlayerViewController wrapper
+│   │   ├── PlayerControlsOverlay.swift   # Play/pause, seek, next/prev
+│   │   ├── EqualizerView.swift           # 6-band EQ UI
+│   │   └── VolumeOverlay.swift           # Brightness/volume gestures
+│   ├── Library/
+│   │   ├── AllVideosView.swift           # Library tab content
+│   │   ├── VideoListView.swift           # Video list rendering
+│   │   └── VideoThumbnailView.swift      # Thumbnail cell
+│   ├── Playlists/
+│   │   ├── PlaylistsView.swift           # Playlists tab content (list/grid)
+│   │   ├── PlaylistDetailView.swift      # Single playlist view
+│   │   ├── PlaylistCells.swift           # Grid/list cell components
+│   │   ├── LikedVideosView.swift         # Liked videos playlist
+│   │   └── AddVideosToPlaylistView.swift # Video picker for playlists
+│   ├── Settings/
+│   │   └── SettingsView.swift            # App settings modal
+│   ├── Onboarding/
+│   │   └── OnboardingView.swift          # First-launch onboarding
+│   ├── Components/
+│   │   ├── EmptyStateView.swift          # Reusable empty state
+│   │   └── SearchBarView.swift           # Search input bar
+│   └── Shared/
+│       ├── AspectRatioMode.swift         # Aspect ratio enum
+│       ├── FocusStyles.swift             # Focus state helpers
+│       └── ViewModifiers.swift           # Shared view modifiers
+├── Managers/
+│   ├── SettingsStore.swift               # App settings (singleton)
+│   ├── VideoManager.swift                # Video import/metadata (singleton)
+│   ├── PlaylistManager.swift             # Playlist CRUD (singleton)
+│   └── ThumbnailCache.swift              # Video thumbnail caching
+└── Models/
+    ├── Video.swift                        # Video data model
+    ├── Playlist.swift                     # Playlist data model
+    └── SortOption.swift                   # Sort enum for library
 ```
