@@ -12,6 +12,7 @@ class SettingsStore: ObservableObject {
     @AppStorage("lastPlaylistId") var lastPlaylistId: String = ""
     @AppStorage("lastVideoId") var lastVideoId: String = ""
     @AppStorage("autoplayOnAppOpen") var autoplayOnAppOpen: Bool = false
+    @AppStorage("libraryShowThumbnails") var showThumbnails: Bool = true
     @AppStorage("isEQEnabled") var isEQEnabled: Bool = false  // When false, uses video's native audio
     @AppStorage("hasCompletedOnboarding") var hasCompletedOnboarding: Bool = false
 

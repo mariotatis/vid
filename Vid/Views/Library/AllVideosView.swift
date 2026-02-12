@@ -14,13 +14,13 @@ struct AllVideosView: View {
 
     var onAddVideo: (() -> Void)?
     var onAddPlaylist: (() -> Void)?
+    var onOpenSettings: (() -> Void)?
     var hasPlaylistContent: Bool = false
     var sortMenuContent: (() -> AnyView)?
     var viewStyleMenuContent: (() -> AnyView)?
 
     @AppStorage("librarySortOption") private var sortOptionRaw: String = "name"
     @AppStorage("librarySortAscending") private var sortAscending: Bool = true
-    @AppStorage("libraryShowThumbnails") private var showThumbnails: Bool = true
 
     @State private var searchText = ""
     @FocusState private var focusedElement: AppFocus?
@@ -51,6 +51,7 @@ struct AllVideosView: View {
                     videosExist: !videoManager.videos.isEmpty,
                     onAddPlaylist: onAddPlaylist,
                     hasPlaylistContent: hasPlaylistContent,
+                    onOpenSettings: onOpenSettings,
                     sortMenuContent: sortMenuContent,
                     viewStyleMenuContent: viewStyleMenuContent
                 )
@@ -101,7 +102,7 @@ struct AllVideosView: View {
 
             VideoListView(
                 videos: sortedVideos,
-                showThumbnails: showThumbnails,
+                showThumbnails: settings.showThumbnails,
                 focusedElement: $focusedElement,
                 onDelete: { offsets in deleteVideo(at: offsets) },
                 onPlay: { video in

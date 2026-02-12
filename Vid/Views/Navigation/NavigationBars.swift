@@ -39,6 +39,9 @@ struct TopNavigationBar: View {
     var onAddPlaylist: (() -> Void)?
     var hasPlaylistContent: Bool = false
 
+    // Settings
+    var onOpenSettings: (() -> Void)?
+
     // Sort menu for Library
     var sortMenuContent: (() -> AnyView)?
 
@@ -47,7 +50,7 @@ struct TopNavigationBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            // Left side: Tab buttons
+            // Left side: Tab buttons + settings
             HStack(spacing: 8) {
                 ForEach(NavigationTab.allCases, id: \.self) { tab in
                     TabButton(
@@ -59,6 +62,12 @@ struct TopNavigationBar: View {
                         }
                     }
                 }
+
+                Button(action: { onOpenSettings?() }) {
+                    Image(systemName: "gearshape")
+                        .foregroundColor(.primary)
+                }
+                .buttonStyle(NavButtonStyle())
             }
 
             Spacer()

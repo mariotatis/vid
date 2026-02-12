@@ -20,6 +20,7 @@ struct PlaylistsView: View {
 
     var onAddVideo: (() -> Void)?
     var onAddPlaylist: (() -> Void)?
+    var onOpenSettings: (() -> Void)?
     var hasPlaylistContent: Bool = false
     var sortMenuContent: (() -> AnyView)?
     var viewStyleMenuContent: (() -> AnyView)?
@@ -83,6 +84,7 @@ struct PlaylistsView: View {
                         videosExist: false,
                         onAddPlaylist: onAddPlaylist,
                         hasPlaylistContent: hasPlaylistContent,
+                        onOpenSettings: onOpenSettings,
                         sortMenuContent: sortMenuContent,
                         viewStyleMenuContent: viewStyleMenuContent
                     )

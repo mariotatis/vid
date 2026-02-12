@@ -14,6 +14,7 @@ struct MainTabView: View {
 
     // Playlist state
     @State private var showCreatePlaylist = false
+    @State private var showSettings = false
 
     // Navigation state for returning to playlist after closing player
     @State private var navigateToPlaylistId: UUID?
@@ -46,6 +47,9 @@ struct MainTabView: View {
                     newPlaylistName = ""
                 }
             }
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView(settings: settingsStore)
         }
         .onAppear {
             onAppLoaded?()
@@ -80,6 +84,7 @@ struct MainTabView: View {
                 showSearch: $showSearch,
                 onAddVideo: { showFileImporter = true },
                 onAddPlaylist: { showCreatePlaylist = true },
+                onOpenSettings: { showSettings = true },
                 hasPlaylistContent: hasPlaylistContent,
                 sortMenuContent: { AnyView(librarySortMenu) },
                 viewStyleMenuContent: { AnyView(playlistViewMenu) }
@@ -94,6 +99,7 @@ struct MainTabView: View {
                 navigateToLiked: $navigateToLiked,
                 onAddVideo: { showFileImporter = true },
                 onAddPlaylist: { showCreatePlaylist = true },
+                onOpenSettings: { showSettings = true },
                 hasPlaylistContent: hasPlaylistContent,
                 sortMenuContent: { AnyView(librarySortMenu) },
                 viewStyleMenuContent: { AnyView(playlistViewMenu) }
@@ -105,7 +111,6 @@ struct MainTabView: View {
 
     @AppStorage("librarySortOption") private var sortOptionRaw: String = "name"
     @AppStorage("librarySortAscending") private var sortAscending: Bool = true
-    @AppStorage("libraryShowThumbnails") private var showThumbnails: Bool = true
 
     @ViewBuilder
     private var librarySortMenu: some View {
@@ -138,17 +143,6 @@ struct MainTabView: View {
             }
         }
 
-        Divider()
-
-        Button(action: { showThumbnails.toggle() }) {
-            Label("Show Thumbnails", systemImage: showThumbnails ? "checkmark" : "")
-        }
-
-        Divider()
-
-        Button(action: { settingsStore.autoplayOnAppOpen.toggle() }) {
-            Label("Autoplay on App Open", systemImage: settingsStore.autoplayOnAppOpen ? "checkmark" : "")
-        }
     }
 
     // MARK: - View Style Menu for Playlists
